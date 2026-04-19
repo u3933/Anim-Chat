@@ -95,7 +95,7 @@ cd <repo-name>
 const MODEL_PATH = 'assets/hiyori_pro_t11.model3.json';
 ```
 
-### 3. アプリを起動
+### 4. アプリを起動
 
 **Windows:**
 ```
@@ -115,7 +115,7 @@ chmod +x start.sh
 
 ブラウザが自動で `http://localhost:3000/wizard.html` を開きます。
 
-### 4. セットアップウィザードで設定
+### 5. セットアップウィザードで設定
 
 1. **LLM設定** — APIキーとモデルを入力
 2. **TTS設定** — 音声合成プロバイダーを選択（なしでもOK）
