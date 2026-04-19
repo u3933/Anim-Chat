@@ -1,0 +1,4027 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>%%CHAT_TITLE%%</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1408">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="%%CHAT_TITLE%%">
+<style>
+/* ===== Theme Variables ===== */
+:root {
+  --bg-main:        #1a1408;
+  --bg-chat:        #0a0800;
+  --bg-bubble-ai:   #261800;
+  --bg-bubble-user: #163044;
+  --bg-canvas:      #FFEDEE;
+  --text-main:      #f0e8d8;
+  --text-ai:        #f0d890;
+  --text-user:      #90d0ff;
+  --accent:         #c07030;
+  --accent-hover:   #d08040;
+  --accent-light:   #f0c080;
+  --border:         #443322;
+  --border-light:   #332211;
+  /* ボタン ON 状態（テーマで上書き） */
+  --btn-on-bg:      #3a2010;
+  --btn-on-text:    var(--accent-light);
+  /* 自動生成: テーマに関わらず bg-main と text-main の中間色 */
+  --text-muted:     color-mix(in srgb, var(--text-main) 40%, var(--bg-main));
+  --bg-card:        color-mix(in srgb, var(--bg-bubble-ai) 60%, var(--bg-main));
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 10px 16px;
+  gap: 8px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  font-size: 15px;
+  color: var(--accent-light);
+  letter-spacing: 3px;
+  padding: 4px 0;
+}
+
+/* メールボタン: PC/モバイル共通で右上固定 */
+.mail-canvas-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  width: fit-content;
+  z-index: 10;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(192, 112, 48, 0.35);
+  background: rgba(0, 0, 0, 0.52);
+  color: #c0a070;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.mail-canvas-btn:hover { background: rgba(60, 32, 8, 0.75); border-color: var(--accent); }
+
+.layout-toggle-btn {
+  position: absolute;
+  right: 0;
+  padding: 3px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-main);
+  color: #776655;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0;
+  transition: color 0.2s, border-color 0.2s;
+}
+.layout-toggle-btn:hover { color: var(--accent-light); border-color: var(--accent); }
+
+.app-container {
+  display: flex;
+  gap: 14px;
+  width: min(960px, 100%);
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== Mobile Layout ===== */
+body.mobile-layout { padding: 8px 6px; }
+
+body.mobile-layout .app-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 30;
+  max-width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 4px 16px;
+  color: #f0d090;
+}
+
+body.mobile-layout .app-container {
+  flex-direction: column;
+  width: 100%;
+  max-width: 430px;
+  gap: 6px;
+  min-height: 0;
+}
+
+/* Mobile: 全画面オーバーレイレイアウト */
+body.mobile-layout .app-container {
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  gap: 0;
+}
+body.mobile-layout .avatar-panel {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  min-height: unset;
+  gap: 0;
+}
+/* モバイル: メール・設定ボタンをヘッダー下に固定 */
+body.mobile-layout .mail-canvas-btn {
+  pointer-events: all;
+  position: fixed;
+  top: 42px; right: 8px;
+  z-index: 25;
+  bottom: auto; left: auto;
+}
+body.mobile-layout #controls-toggle-btn {
+  display: block;
+  position: fixed;
+  top: 78px; right: 8px;
+  z-index: 25;
+  pointer-events: all;
+  bottom: auto; left: auto;
+}
+body.mobile-layout #controls-panel {
+  display: flex;
+  position: fixed;
+  top: 120px; left: 0; right: 0;
+  z-index: 24;
+  pointer-events: all;
+  background: color-mix(in srgb, var(--bg-main) 96%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+body.mobile-layout #canvas-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: unset;
+  max-height: unset;
+  border-radius: 0;
+  overflow: hidden;
+}
+body.mobile-layout #controls-panel { display: none; }
+body.mobile-layout .chat-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: transparent;
+  pointer-events: none;
+  gap: 0;
+  padding: 0;
+}
+body.mobile-layout .chat-panel > * { pointer-events: all; }
+body.mobile-layout #chat-messages {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border-radius: 0;
+  max-height: 45dvh;
+  flex-shrink: 0;
+  flex: 0 1 auto;
+}
+body.mobile-layout .msg-bubble.msg-ai   { background: rgba(38, 24, 0, 0.88); color: #f5e090; }
+body.mobile-layout .msg-bubble.msg-user { background: rgba(22, 48, 68, 0.88); color: #a8d8ff; }
+body.mobile-layout .msg-bubble.msg-sys  { color: rgba(255, 240, 200, 0.70); }
+body.mobile-layout .chat-input-row {
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  padding: 6px 8px;
+}
+
+body.mobile-layout .tts-toggle { padding: 4px 9px; font-size: 10px; }
+
+/* 小さい画面では自動的にモバイルレイアウトを適用（手動設定がある場合は上書き） */
+@media (max-width: 640px) {
+  body:not(.desktop-forced) .app-header { position: fixed; top: 0; left: 0; right: 0; z-index: 30; max-width: 100%; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 4px 16px; color: #f0d090; }
+  body:not(.desktop-forced) .app-container { flex-direction: column; width: 100%; max-width: 100%; gap: 0; }
+  body:not(.desktop-forced) .avatar-panel  { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; min-height: unset; gap: 0; }
+  body:not(.desktop-forced) .mail-canvas-btn { pointer-events: all; position: fixed; top: 42px; right: 8px; z-index: 25; bottom: auto; left: auto; }
+  body:not(.desktop-forced) #controls-toggle-btn { display: block; position: fixed; top: 78px; right: 8px; z-index: 25; pointer-events: all; bottom: auto; left: auto; }
+  body:not(.desktop-forced) #controls-panel { display: flex; position: fixed; top: 120px; left: 0; right: 0; z-index: 24; pointer-events: all; background: color-mix(in srgb, var(--bg-main) 96%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); padding: 8px 12px; overflow-y: auto; max-height: 60vh; }
+  body:not(.desktop-forced) #canvas-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: unset; max-height: unset; border-radius: 0; overflow: hidden; }
+  body:not(.desktop-forced) .chat-panel { position: fixed; inset: 0; z-index: 10; width: 100%; max-width: 100%; display: flex; flex-direction: column; justify-content: flex-end; background: transparent; pointer-events: none; gap: 0; padding: 0; }
+  body:not(.desktop-forced) .chat-panel > * { pointer-events: all; }
+  body:not(.desktop-forced) #chat-messages { background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); border-radius: 0; max-height: 45dvh; flex-shrink: 0; flex: 0 1 auto; }
+  body:not(.desktop-forced) .msg-bubble.msg-ai   { background: rgba(38,24,0,0.88); color: #f5e090; }
+  body:not(.desktop-forced) .msg-bubble.msg-user { background: rgba(22,48,68,0.88); color: #a8d8ff; }
+  body:not(.desktop-forced) .msg-bubble.msg-sys  { color: rgba(255,240,200,0.70); }
+  body:not(.desktop-forced) .chat-input-row { background: rgba(0,0,0,0.62); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); padding: 6px 8px; }
+}
+
+/* ===== Avatar Panel ===== */
+.avatar-panel {
+  flex-shrink: 0;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  min-height: 0;
+}
+
+#canvas-wrapper {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: calc(100dvh - 180px);
+  background: var(--bg-canvas);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== Layer System ===== */
+#bg-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  display: none;
+}
+
+#avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  position: relative;
+  z-index: 1;
+  user-select: none;
+  transition: opacity 0.25s ease;
+}
+
+#fg-layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  z-index: 2;
+  pointer-events: none;
+  display: none;
+}
+
+#status {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #9f9;
+  background: rgba(0,0,0,0.55);
+  padding: 2px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 3;
+}
+
+#speaking-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #f0c080;
+  background: rgba(0,0,0,0.65);
+  padding: 2px 14px;
+  border-radius: 10px;
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ===== Controls Panel (collapsible) ===== */
+#controls-toggle-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 3;
+  padding: 3px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(192, 112, 48, 0.35);
+  background: rgba(255, 255, 255, 0.52);
+  color: #c0a070;
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+#controls-toggle-btn:hover {
+  background: rgba(60, 32, 8, 0.75);
+  border-color: var(--accent);
+}
+
+#controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  max-height: 560px;
+  opacity: 1;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.tts-toggle.danger-toggle:hover { border-color: #c06050; color: #c06050; }
+.tts-toggle.wizard-btn { border-color: var(--border); color: #a0b8d0; }
+.tts-toggle.wizard-btn:hover { border-color: #6090c0; color: #b0d0f0; }
+#controls-panel.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* ===== Layer Controls ===== */
+.layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  flex-wrap: wrap;
+}
+
+.tts-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: #888;
+}
+
+.tts-toggle {
+  padding: 5px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-main);
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tts-toggle.on {
+  background: var(--btn-on-bg);
+  border-color: var(--accent);
+  color: var(--btn-on-text);
+}
+.tts-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.tts-controls {
+  flex-wrap: wrap;
+}
+
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+input[type=range].speed-slider {
+  width: 80px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ===== Chat Panel ===== */
+.chat-panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#chat-messages {
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-chat);
+  border-radius: 12px;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-track { background: transparent; }
+#chat-messages::-webkit-scrollbar-thumb { background: #3a2a10; border-radius: 2px; }
+
+.msg-bubble {
+  max-width: 92%;
+  padding: 9px 13px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: break-word;
+}
+
+.msg-user {
+  background: var(--bg-bubble-user);
+  color: var(--text-user);
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-ai {
+  background: var(--bg-bubble-ai);
+  color: var(--text-ai);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.msg-sys {
+  font-size: 11px;
+  color: var(--text-muted);
+  align-self: center;
+  padding: 0;
+  background: none;
+}
+
+.msg-ts {
+  display: block;
+  font-size: 10px;
+  opacity: 0.45;
+  text-align: right;
+  margin-top: 4px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.msg-name {
+  font-size: 10px;
+  opacity: 0.55;
+  margin-bottom: 4px;
+}
+
+
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+}
+
+#user-input {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+#user-input:focus { border-color: var(--accent); }
+
+#send-btn {
+  padding: 10px 22px;
+  border-radius: 20px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+#send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+#send-btn:disabled { background: #3a3028; color: #666; cursor: not-allowed; }
+#send-btn.abort-mode { background: #5a1a1a; color: #f08080; font-size: 2em; line-height: 1; }
+#send-btn.abort-mode:hover { background: #7a2020; }
+
+#attach-btn {
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: #776655;
+  font-size: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s, border-color 0.2s;
+}
+#attach-btn:hover { color: var(--accent-light); border-color: var(--accent); }
+#attach-btn.has-file { border-color: #c07030; color: #f0c080; background: #1e100a; }
+
+#attach-chip {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 12px;
+  background: #1a0e04;
+  border: 1px solid #554433;
+  border-radius: 12px;
+  font-size: 11px;
+  color: #c0a070;
+  flex-shrink: 0;
+}
+#attach-chip.visible { display: flex; }
+#attach-chip-icon { font-size: 13px; }
+#attach-chip-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#attach-chip-clear {
+  background: none;
+  border: none;
+  color: #776655;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+#attach-chip-clear:hover { color: #e07060; }
+
+.chat-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ===== Mail Modal ===== */
+#mail-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+#mail-modal-overlay.open { display: flex; }
+
+#mail-modal {
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: min(480px, 95vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mail-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+  color: var(--accent-light);
+  flex-shrink: 0;
+}
+.mail-modal-close {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 18px; cursor: pointer; padding: 2px 6px; line-height: 1;
+}
+.mail-modal-close:hover { color: var(--accent-light); }
+
+.mail-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 10px 14px;
+}
+
+/* --- Inbox list --- */
+.mail-list { display: flex; flex-direction: column; gap: 6px; }
+.mail-list-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.mail-list-item:hover { border-color: var(--accent); }
+.mail-list-item.unread { border-left: 3px solid var(--accent-light); }
+.mail-list-date { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+.mail-list-preview { font-size: 12px; color: var(--text-ai); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mail-list-unread-dot {
+  display: inline-block; width: 7px; height: 7px;
+  background: var(--accent-light); border-radius: 50%; margin-right: 5px; vertical-align: middle;
+}
+.mail-empty { font-size: 12px; color: var(--text-muted); padding: 20px 0; text-align: center; }
+
+/* --- Mail detail --- */
+.mail-detail-back {
+  background: none; border: none; color: var(--accent); font-size: 12px;
+  cursor: pointer; padding: 0 0 8px 0; display: block;
+}
+.mail-detail-back:hover { color: var(--accent-light); }
+.mail-detail-date { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+.mail-detail-body {
+  font-size: 13px; color: var(--text-main); line-height: 1.7;
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: 6px; padding: 12px; margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+.mail-add-to-chat-btn {
+  width: 100%; padding: 8px; border-radius: 6px;
+  background: var(--btn-on-bg); border: 1px solid var(--accent);
+  color: var(--btn-on-text); font-size: 12px; cursor: pointer;
+  transition: background 0.2s;
+}
+.mail-add-to-chat-btn:hover { background: var(--bg-bubble-ai); }
+.mail-add-to-chat-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* --- Inbox button badge --- */
+.mail-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: #c04020; color: #fff;
+  font-size: 9px; font-weight: bold;
+  border-radius: 8px; padding: 0 4px; min-width: 14px;
+  text-align: center; line-height: 14px;
+  display: none;
+}
+
+/* ===== Monologue Modal ===== */
+#monologue-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#monologue-modal-overlay.open { display: flex; }
+
+#monologue-modal {
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: min(460px, 96vw);
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.monologue-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+  color: var(--accent-light);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.monologue-modal-close {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 18px; cursor: pointer; padding: 2px 6px; line-height: 1;
+}
+.monologue-modal-close:hover { color: var(--accent-light); }
+
+.monologue-modal-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.monologue-modal-body::-webkit-scrollbar { width: 4px; }
+.monologue-modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.mono-section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.mono-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mono-toggle-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text-ai); cursor: pointer; flex: 1;
+}
+.mono-toggle-label input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+.mono-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+.mono-status-row span { color: var(--text-ai); }
+
+.mono-theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mono-theme-item {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.mono-theme-input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+.mono-theme-input:focus { border-color: var(--accent); }
+.mono-theme-del {
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mono-theme-del:hover { border-color: #a04030; color: #e06050; }
+
+.mono-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.mono-btn {
+  padding: 7px 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.mono-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+.mono-btn.full { grid-column: 1 / -1; }
+.mono-btn.primary {
+  border-color: var(--accent);
+  background: var(--btn-on-bg);
+  color: var(--btn-on-text);
+}
+.mono-btn.primary:hover { border-color: var(--accent-hover); background: var(--bg-bubble-ai); }
+
+.mono-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.mono-stock-list::-webkit-scrollbar { width: 4px; }
+.mono-stock-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.mono-stock-item {
+  font-size: 11px;
+  color: var(--text-ai);
+  padding: 5px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  line-height: 1.5;
+}
+
+/* ===== Expression Settings Modal ===== */
+#expr-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+}
+#expr-modal-inner {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  width: min(560px, 96vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#expr-modal-inner h3 {
+  color: var(--accent-light);
+  font-size: 14px;
+  margin: 0;
+}
+.expr-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.expr-slot-num {
+  font-size: 13px;
+  color: var(--text-muted);
+  width: 16px;
+  flex-shrink: 0;
+}
+.expr-label-input {
+  flex: 1;
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.expr-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-main);
+  background-size: cover;
+  background-position: center top;
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== Memory Modal ===== */
+#memory-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#memory-modal-overlay.open { display: flex; }
+
+#memory-modal {
+  background: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: min(480px, 96vw);
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.memory-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 13px;
+  color: var(--accent-light);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.memory-modal-header span { font-size: 11px; color: var(--text-muted); margin-left: 8px; }
+
+.memory-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+}
+.memory-modal-close:hover { color: var(--accent-light); }
+
+.memory-modal-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.memory-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.memory-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-ai);
+  cursor: pointer;
+  flex: 1;
+}
+.memory-toggle-label input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+.memory-extract-btn {
+  padding: 4px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.memory-extract-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+.memory-filter-row {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.memory-filter-row select,
+.memory-filter-row input {
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+}
+.memory-filter-row select { width: 110px; flex-shrink: 0; }
+.memory-filter-row input  { flex: 1; }
+
+.memory-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.memory-list::-webkit-scrollbar { width: 4px; }
+.memory-list::-webkit-scrollbar-track { background: transparent; }
+.memory-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.memory-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.memory-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.memory-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.memory-card-cat {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent-light);
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.memory-card-actions { display: flex; gap: 4px; }
+.memory-card-actions button {
+  padding: 2px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-main);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.memory-card-actions button:hover { color: var(--accent-light); border-color: var(--accent); }
+.memory-card-actions button.del:hover { color: #e07060; border-color: #a04030; }
+
+.memory-card-subject { font-weight: bold; color: var(--text-main); margin-bottom: 3px; }
+.memory-card-summary { color: var(--text-ai); line-height: 1.5; }
+
+.memory-card-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.memory-card-kw {
+  background: color-mix(in srgb, var(--text-main) 10%, transparent);
+  color: var(--text-muted);
+  padding: 1px 7px;
+  border-radius: 7px;
+  font-size: 10px;
+}
+
+.memory-card-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.memory-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.memory-action-row .mem-btn {
+  padding: 7px 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.memory-action-row .mem-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+.memory-action-row .mem-btn.danger { border-color: #662211; color: #a05040; }
+.memory-action-row .mem-btn.danger:hover { border-color: #c04030; color: #e06050; background: #2a0808; }
+.memory-action-row .mem-btn.full { grid-column: 1 / -1; }
+
+/* ===== Gist Sync Section ===== */
+.gist-section {
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
+  flex-shrink: 0;
+}
+
+.gist-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 2px 0 6px;
+  font-size: 12px;
+  color: var(--text-ai);
+  user-select: none;
+}
+.gist-section-header:hover { color: var(--accent-light); }
+.gist-section-title { display: flex; align-items: center; gap: 6px; }
+.gist-collapse-icon { font-size: 10px; color: var(--text-muted); transition: transform 0.2s; }
+.gist-collapse-icon.open { transform: rotate(0deg); }
+.gist-collapse-icon.closed { transform: rotate(-90deg); }
+
+.gist-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  max-height: 500px;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  opacity: 1;
+}
+.gist-section-body.collapsed { max-height: 0; opacity: 0; }
+
+.gist-field-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.gist-input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 12px;
+  font-family: monospace;
+  outline: none;
+}
+.gist-input:focus { border-color: var(--accent); }
+
+.gist-id-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.gist-id-row .gist-input { flex: 1; }
+.gist-id-copy {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.gist-id-copy:hover { border-color: var(--accent); color: var(--accent-light); }
+
+.gist-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.gist-btn {
+  padding: 7px 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.gist-btn:hover { border-color: var(--accent); color: var(--accent-light); background: var(--bg-bubble-ai); }
+.gist-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.gist-session-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-light);
+}
+.gist-session-btn {
+  padding: 7px 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-chat);
+  color: var(--text-ai);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.gist-session-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+
+.gist-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-height: 14px;
+  text-align: center;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<!-- Apply saved theme vars BEFORE first paint -->
+<script>
+(function(){
+  try {
+    var t = JSON.parse(localStorage.getItem('hiyori_theme_vars') || 'null');
+    if (t) {
+      var r = document.documentElement;
+      var keys = ['--bg-main','--bg-chat','--bg-bubble-ai','--bg-bubble-user','--bg-canvas',
+                  '--text-main','--text-ai','--text-user','--accent','--accent-hover',
+                  '--accent-light','--border','--border-light',
+                  '--btn-on-bg','--btn-on-text'];
+      keys.forEach(function(k){ if(t[k]) r.style.setProperty(k, t[k]); });
+    }
+    var title = localStorage.getItem('hiyori_cfg_chat_title');
+    if (title) {
+      document.title = title;
+      var m = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (m) m.setAttribute('content', title);
+    }
+  } catch(e){}
+})();
+</script>
+</head>
+<body>
+
+<div class="app-header">
+  <span>ひより Chat</span>
+  <button class="layout-toggle-btn" id="layout-toggle-btn" onclick="toggleLayout()">モバイル</button>
+</div>
+
+<div class="app-container">
+
+  <!-- ===== Avatar Panel ===== -->
+  <div class="avatar-panel">
+    <button class="mail-canvas-btn" id="mail-inbox-btn" onclick="openMailModal()" title="ひよりからのメール"><span id="mail-icon" style="font-size:16px;line-height:1;vertical-align:middle">📪</span> メール<span class="mail-badge" id="mail-badge"></span></button>
+    <div id="canvas-wrapper">
+      <img id="bg-layer" alt="">
+      <img id="avatar-img" alt="" draggable="false">
+      <img id="fg-layer" alt="">
+      <div id="status">Loading...</div>
+      <div id="speaking-indicator">話し中...</div>
+      <button id="controls-toggle-btn" onclick="toggleControls()">設定 ▼</button>
+    </div>
+
+    <div id="controls-panel">
+      <div class="tts-controls">
+        <button class="tts-toggle on" id="tts-toggle" onclick="toggleTTS()">TTS ON</button>
+        <button class="tts-toggle" id="search-toggle" onclick="toggleSearch()">検索 OFF</button>
+        <button class="tts-toggle" id="knowledge-toggle" onclick="toggleKnowledge()" disabled>参照 N/A</button>
+        <div class="speed-row">
+          <span>速度:</span>
+          <input type="range" class="speed-slider" id="speed-slider"
+                 min="0.6" max="1.5" step="0.1" value="1.0"
+                 oninput="ttsSpeed=parseFloat(this.value); document.getElementById('speed-label').textContent=this.value">
+          <span id="speed-label">1.0</span>
+        </div>
+      </div>
+      <div class="layer-controls">
+        <label class="tts-toggle" style="cursor:pointer" title="背景画像を設定（PNG/JPG）">
+          背景設定<input type="file" accept="image/*" style="display:none" onchange="setLayerFromInput('bg-layer',this)">
+        </label>
+        <button class="tts-toggle" onclick="clearLayer('bg-layer')" title="背景をクリア">背景✕</button>
+        <label class="tts-toggle" style="cursor:pointer" title="前景画像を設定（PNG推奨）">
+          前景設定<input type="file" accept="image/*" style="display:none" onchange="setLayerFromInput('fg-layer',this)">
+        </label>
+        <button class="tts-toggle" onclick="clearLayer('fg-layer')" title="前景をクリア">前景✕</button>
+        <button class="tts-toggle" onclick="openExprModal()" title="表情スロット設定">表情設定</button>
+      </div>
+      <div class="layer-controls">
+        <button class="tts-toggle danger-toggle" onclick="clearHistory()">履歴クリア</button>
+        <button class="tts-toggle" onclick="exportHistory()">エクスポート</button>
+        <label class="tts-toggle" style="cursor:pointer">
+          インポート<input type="file" accept=".json" style="display:none" onchange="importHistory(event)">
+        </label>
+        <button class="tts-toggle" onclick="openMemoryModal()" title="メモリ管理画面を開く">メモリ</button>
+        <button class="tts-toggle" onclick="reloadTTSDict()" title="tts_dict.yaml を再読込">辞書再読込</button>
+        <button class="tts-toggle" id="monologue-toggle-btn" onclick="toggleMonologue()" title="アイドル独り言のON/OFF">独り言 OFF</button>
+        <button class="tts-toggle" onclick="openMonologueModal()" title="独り言設定を開く">独り言設定</button>
+        <button class="tts-toggle wizard-btn" onclick="window.location.href='wizard.html'" title="セットアップウィザードを開く">⚙ ウィザード</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Chat Panel ===== -->
+  <div class="chat-panel">
+    <div id="chat-messages"></div>
+
+    <div class="chat-input-row">
+      <div class="chat-input-area">
+        <button id="attach-btn" onclick="document.getElementById('attach-file-input').click()" title="ファイルを添付（画像・テキスト・PDF）">📎</button>
+        <input id="attach-file-input" type="file"
+               accept="image/*,.txt,.md,.pdf"
+               style="display:none" onchange="handleAttachFile(this)">
+        <input id="user-input" type="text" placeholder="ひよりに話しかけてみよう..."
+               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"/>
+        <button id="send-btn" onclick="sendMessage()">送信</button>
+      </div>
+      <div id="attach-chip">
+        <span id="attach-chip-icon">📄</span>
+        <span id="attach-chip-name"></span>
+        <button id="attach-chip-clear" onclick="clearAttachment()" title="添付を解除">✕</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== Mail Modal ===== -->
+<div id="mail-modal-overlay" onclick="if(event.target===this)closeMailModal()">
+  <div id="mail-modal">
+    <div class="mail-modal-header">
+      <div id="mail-modal-title">📬 受信ボックス</div>
+      <button class="mail-modal-close" onclick="closeMailModal()">✕</button>
+    </div>
+    <div class="mail-modal-body" id="mail-modal-body">
+      <div class="mail-empty">メールなし</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Memory Modal ===== -->
+<div id="memory-modal-overlay" onclick="if(event.target===this)closeMemoryModal()">
+  <div id="memory-modal">
+    <div class="memory-modal-header">
+      <div>メモリ管理 <span id="memory-count-label"></span></div>
+      <button class="memory-modal-close" onclick="closeMemoryModal()">✕</button>
+    </div>
+    <div class="memory-modal-body">
+      <div class="memory-top-row">
+        <label class="memory-toggle-label">
+          <input type="checkbox" id="memory-enabled-chk" checked onchange="memoryEnabled=this.checked">
+          メモリ機能有効
+        </label>
+        <button class="memory-extract-btn" onclick="requestMemoryExtract()">手動抽出</button>
+      </div>
+      <div class="memory-filter-row">
+        <select id="memory-cat-filter" onchange="updateMemoryDisplay()">
+          <option value="">全カテゴリ</option>
+          <option value="人物">人物</option>
+          <option value="好み">好み</option>
+          <option value="経験">経験</option>
+          <option value="仕事">仕事</option>
+          <option value="関係">関係</option>
+          <option value="場所">場所</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" id="memory-search-input" placeholder="キーワード検索..." oninput="updateMemoryDisplay()">
+      </div>
+      <div class="memory-list" id="memory-list">
+        <div class="memory-empty">メモリなし</div>
+      </div>
+      <div class="memory-action-row">
+        <button class="mem-btn" onclick="addMemoryManually()">➕ 追加</button>
+        <button class="mem-btn" onclick="exportMemories()">💾 エクスポート</button>
+        <button class="mem-btn full" onclick="importMemoriesFromFile()">📂 インポート</button>
+        <button class="mem-btn danger full" onclick="clearAllMemories()">🗑️ 全削除</button>
+      </div>
+
+      <!-- ===== Gist Sync ===== -->
+      <div class="gist-section">
+        <div class="gist-section-header" onclick="toggleGistSection()">
+          <div class="gist-section-title">☁️ Gist同期</div>
+          <span class="gist-collapse-icon open" id="gist-collapse-icon">▼</span>
+        </div>
+        <div class="gist-section-body" id="gist-section-body">
+          <div>
+            <div class="gist-field-label">GitHub Personal Access Token</div>
+            <input type="password" class="gist-input" id="gist-token"
+                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                   oninput="localStorage.setItem('hiyori_gist_token', this.value)">
+            <div class="gist-field-label" style="margin-top:3px; font-size:9px;">scopeは「gist」のみでOK</div>
+          </div>
+          <div>
+            <div class="gist-field-label">Gist ID（復元時に入力）</div>
+            <div class="gist-id-row">
+              <input type="text" class="gist-input" id="gist-id"
+                     placeholder="（保存後に自動表示）"
+                     oninput="localStorage.setItem('hiyori_gist_id', this.value)">
+              <button class="gist-id-copy" onclick="copyGistId()" title="IDをコピー">コピー</button>
+            </div>
+          </div>
+          <div class="gist-btn-row">
+            <button class="gist-btn" onclick="gistSave()">☁️ 保存</button>
+            <button class="gist-btn" onclick="gistRestore()">☁️ 復元</button>
+          </div>
+          <div class="gist-status" id="gist-status"></div>
+          <div class="gist-session-row">
+            <button class="gist-session-btn" onclick="sessionExport()">💾 セッション保存</button>
+            <button class="gist-session-btn" onclick="sessionImport()">📂 セッション読込</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== Monologue Modal ===== -->
+<div id="monologue-modal-overlay" onclick="if(event.target===this)closeMonologueModal()">
+  <div id="monologue-modal">
+    <div class="monologue-modal-header">
+      <div>独り言設定</div>
+      <button class="monologue-modal-close" onclick="closeMonologueModal()">✕</button>
+    </div>
+    <div class="monologue-modal-body">
+
+      <div class="mono-top-row">
+        <label class="mono-toggle-label">
+          <input type="checkbox" id="mono-enabled-chk" onchange="setMonologueEnabled(this.checked)">
+          独り言機能有効
+        </label>
+      </div>
+
+      <div class="mono-status-row">
+        <label style="display:flex;align-items:center;gap:6px">
+          アイドル時間:
+          <input type="number" id="mono-idle-input" min="30" max="86400" step="30"
+                 style="width:70px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-chat);color:var(--text-ai);font-size:12px;text-align:right"
+                 onchange="setIdleTimeout(parseInt(this.value))">
+          秒
+        </label>
+        <div>ストック: <span id="mono-stock-count">0</span>件</div>
+      </div>
+
+      <div>
+        <div class="mono-section-label">つぶやきテーマ（3件以上推奨）</div>
+        <div class="mono-theme-list" id="mono-theme-list"></div>
+        <button class="mono-btn full" style="margin-top:5px" onclick="addMonologueTheme()">＋ テーマを追加</button>
+      </div>
+
+      <div class="mono-btn-row">
+        <button class="mono-btn primary full" onclick="generateMonologueStock(true)">今すぐシナリオ生成</button>
+      </div>
+
+      <div>
+        <div class="mono-section-label">ストック中の独り言</div>
+        <div class="mono-stock-list" id="mono-stock-list">
+          <div style="font-size:11px;color:#554433;padding:8px 0;">ストックなし</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 表情設定モーダル -->
+<div id="expr-modal" onclick="if(event.target===this)closeExprModal()">
+  <div id="expr-modal-inner">
+    <h3>表情スロット設定</h3>
+    <p style="font-size:11px;color:var(--text-muted);margin:0">各スロットにラベルと画像を設定してください。AIがセリフに合う表情を自動選択します。</p>
+    <div id="expr-slots-container"></div>
+    <button class="tts-toggle" style="align-self:flex-end" onclick="closeExprModal()">閉じる</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG  ※ 優先順位: (1) chat_start.ps1 注入値  (2) localStorage (wizard設定)  (3) ハードコードデフォルト
+// ============================================================
+function _ls(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch(e){ return fallback; } }
+
+const _GEMINI_KEY_RAW  = '%%GEMINI_API_KEY%%';
+const GEMINI_API_KEY   = _GEMINI_KEY_RAW.startsWith('%%')  ? _ls('hiyori_cfg_gemini_api_key', '')  : _GEMINI_KEY_RAW;
+
+const _GEMINI_MDL_RAW  = '%%GEMINI_MODEL%%';
+const GEMINI_MODEL     = _GEMINI_MDL_RAW.startsWith('%%')  ? _ls('hiyori_cfg_gemini_model', 'gemini-2.0-flash') : _GEMINI_MDL_RAW;
+
+const _PROVIDER_RAW    = '%%LLM_PROVIDER%%';
+const LLM_PROVIDER     = _PROVIDER_RAW.startsWith('%%')    ? _ls('hiyori_cfg_llm_provider', 'gemini') : _PROVIDER_RAW;
+
+const _BASE_URL_RAW    = '%%LLM_BASE_URL%%';
+const LLM_BASE_URL     = _BASE_URL_RAW.startsWith('%%')    ? _ls('hiyori_cfg_llm_base_url', '') : _BASE_URL_RAW;
+
+const _LLM_KEY_RAW     = '%%LLM_API_KEY%%';
+const LLM_API_KEY      = _LLM_KEY_RAW.startsWith('%%')     ? _ls('hiyori_cfg_llm_api_key', '') : _LLM_KEY_RAW;
+
+const _LLM_MDL_RAW     = '%%LLM_MODEL%%';
+const LLM_MODEL        = _LLM_MDL_RAW.startsWith('%%')     ? _ls('hiyori_cfg_llm_model', '') : _LLM_MDL_RAW;
+
+const _TTS_PRV_RAW     = '%%TTS_PROVIDER%%';
+const TTS_PROVIDER     = _TTS_PRV_RAW.startsWith('%%')     ? _ls('hiyori_cfg_tts_provider', 'sbv2') : _TTS_PRV_RAW;
+
+const _TTS_EP_RAW      = '%%TTS_ENDPOINT%%';
+const TTS_ENDPOINT     = _TTS_EP_RAW.startsWith('%%')      ? _ls('hiyori_cfg_tts_endpoint', 'http://127.0.0.1:5000') : _TTS_EP_RAW;
+
+const _TTS_MDL_RAW     = '%%TTS_MODEL%%';
+const TTS_MODEL        = _TTS_MDL_RAW.startsWith('%%')     ? _ls('hiyori_cfg_tts_model', '') : _TTS_MDL_RAW;
+
+// ※ 数値プレースホルダーはシングルクォートで囲み、chat_start.ps1側も対応
+const _TTS_SID_RAW     = '%%TTS_SPEAKER_ID%%';
+const TTS_SPEAKER_ID   = parseInt(_TTS_SID_RAW.startsWith('%%')
+  ? _ls('hiyori_cfg_tts_speaker_id', '0') : _TTS_SID_RAW);
+
+const _TTS_VOL_RAW     = '%%TTS_VOLUME%%';
+const TTS_VOLUME       = parseFloat(_TTS_VOL_RAW.startsWith('%%')
+  ? _ls('hiyori_cfg_tts_volume', '1.0') : _TTS_VOL_RAW);
+
+const _TITLE_RAW       = '%%CHAT_TITLE%%';
+const CHAT_TITLE       = _TITLE_RAW.startsWith('%%')       ? _ls('hiyori_cfg_chat_title', 'ひより Chat') : _TITLE_RAW;
+
+let   TTS_DICT         = null;
+const TTS_AUTO_DICT_KEY  = 'hiyori_tts_auto_dict';
+let   TTS_AUTO_DICT      = {};
+const ttsPendingWords    = new Set();
+
+// ※ CHAT_SYSTEM_PROMPT_JSON は chat_start.ps1 がJSON文字列（'...'）として注入
+// 未注入時は _SP_RAW が '%%CHAT_SYSTEM_PROMPT_JSON%%' のままなので localStorage or デフォルト
+const _SP_RAW = '%%CHAT_SYSTEM_PROMPT_JSON%%';
+const CHAT_SYSTEM_PROMPT = (_SP_RAW.startsWith('%%') ? null : (() => { try { return JSON.parse(_SP_RAW); } catch(e){ return _SP_RAW; } })())
+  || _ls('hiyori_cfg_system_prompt', null)
+  || (
+  'あなたは「ひより」という名前の明るく元気なAIアシスタントです。\n' +
+  'ユーザーと日本語で自然な会話をしてください。\n' +
+  '- 返答は2〜4文程度で、フレンドリーで自然な話し言葉にしてください\n' +
+  '- 「！」「？」「。」などの句読点を適切に使ってください（音声合成の分割のため）\n' +
+  '- 絵文字・記号（☆★♪など）は使わないでください（TTSで誤読されるため）\n' +
+  '- 「〜だよ！」「〜だね」「〜かな？」など自然なタメ口で話してください'
+);
+
+const MAX_HISTORY        = 10;
+const _IDLE_RAW          = '%%IDLE_TIMEOUT%%';
+const IDLE_TIMEOUT       = (_IDLE_RAW.startsWith('%%')) ? parseInt(_ls('hiyori_cfg_idle_timeout', '300')) : (parseInt(_IDLE_RAW) || 300);
+let   idleTimeoutSec     = IDLE_TIMEOUT;
+const _MAIL_IDLE_RAW     = '%%MAIL_IDLE_HOURS%%';
+const MAIL_IDLE_HOURS_CFG = (_MAIL_IDLE_RAW.startsWith('%%')) ? 8 : (parseInt(_MAIL_IDLE_RAW) || 8);
+
+// ============================================================
+// STATE
+// ============================================================
+// ---- 表情スロット ----
+const EXPR_KEY     = 'hiyori_expr_slots';
+const EXPR_DB_NAME = 'hiyori_expr_db';
+let currentExprId  = 0;
+const DEFAULT_EXPRESSIONS = [
+  { id: 0, label: 'ノーマル（通常）',       image: null },
+  { id: 1, label: '嬉しい・楽しい',         image: null },
+  { id: 2, label: '悲しい・寂しい',         image: null },
+  { id: 3, label: '驚く',                    image: null },
+  { id: 4, label: '照れる・恥ずかしい',     image: null },
+  { id: 5, label: '考えている',             image: null },
+  { id: 6, label: '怒っている・不機嫌',     image: null },
+  { id: 7, label: '眠い・疲れている',       image: null },
+  { id: 8, label: '（未設定）',             image: null },
+  { id: 9, label: '（未設定）',             image: null },
+];
+let expressions = JSON.parse(JSON.stringify(DEFAULT_EXPRESSIONS));
+
+let ttsEnabled       = true;
+let ttsSpeed         = 1.0;
+let isSpeaking       = false;
+let groundingEnabled = false;
+let lastSearchQueries   = null; // Gemini grounding で使ったクエリを一時保持
+let knowledgeChunks     = [];   // { text, source }  knowledge/ から読み込んだチャンク群
+let knowledgeReady      = false;
+let knowledgeEnabled    = false;
+let lastKnowledgeSources = null; // 直前のターンで参照したファイル名リスト
+let chatHistory      = []; // [{role:'user'|'model', parts:[{text}]}]  Gemini API 用
+let displayMessages  = []; // [{role:'user'|'ai', text, ts}]  UI復元・エクスポート用
+const HISTORY_KEY    = 'hiyori_chat_history';
+const TRANSFORM_KEY  = 'hiyori_avatar_transform';
+const LAYER_DB_NAME  = 'hiyori_layers';
+const LAYOUT_KEY     = 'hiyori_layout';
+const CONTROLS_KEY   = 'hiyori_controls';
+const MEMORY_DB_NAME = 'hiyori_memory_db';
+const MEMORY_LIMIT   = 100;
+let   memoryDB       = null;
+let   memoryEnabled  = true;
+let   memoryTurnCount = 0; // sendMessage ごとにカウント、4ごとに自動抽出
+
+// ---- Monologue state ----
+// ---- Mail state ----
+const MAIL_INBOX_KEY        = 'hiyori_mail_inbox';
+const MAIL_LAST_CONVO_KEY   = 'hiyori_last_convo_time';
+const MAIL_IDLE_HOURS       = MAIL_IDLE_HOURS_CFG;
+const MAIL_INBOX_MAX        = 50;
+let   mailInbox             = [];
+let   mailIdleTimer         = null;
+let   isGeneratingMail      = false;
+
+// ---- Chat abort ----
+let chatAbortController = null;
+
+const MONOLOGUE_THEMES_KEY  = 'hiyori_monologue_themes';
+const MONOLOGUE_STOCK_KEY   = 'hiyori_monologue_stock';
+const MONOLOGUE_STOCK_MAX   = 8;
+const MONOLOGUE_STOCK_MIN   = 2;   // この件数以下になったら補充
+const MONOLOGUE_GEN_COUNT   = 6;   // 1回の生成件数
+const DEFAULT_MONOLOGUE_THEMES = [
+  '最近の天気や季節の話題',
+  '美味しい食べ物・飲み物のこと',
+  'おすすめのアニメ・音楽・趣味',
+];
+const FALLBACK_MONOLOGUES = [
+  'なんか静かだね。こういう時間も悪くないかな。',
+  'ちょっとぼーっとしてたよ。何か話したいことあったら気軽に声かけてね。',
+  'ふと思ったんだけど、最近どんな感じ？',
+];
+let monologueEnabled = false;
+let monologueThemes  = [];
+let monologueStock   = [];
+let idleTimer        = null;
+let isGeneratingMonologue = false;
+
+// ---- Attachment state ----
+let attachedFileType = null;   // 'image' | 'text'
+let attachedFileName = '';
+let attachedMimeType = '';
+let attachedTextContent = '';  // text/md/pdf の場合
+let attachedBase64      = '';  // image の場合（data URL の base64 部分）
+
+// ============================================================
+// TTS / AUDIO STATE
+// ============================================================
+let audioCtx         = null;
+let ttsCancelId      = 0;
+let currentSource    = null;
+
+// ============================================================
+// 表情スロット — 初期化・切替・IndexedDB
+// ============================================================
+function loadExpressions() {
+  try {
+    const saved = localStorage.getItem(EXPR_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      expressions = parsed.map((e, i) => ({ ...DEFAULT_EXPRESSIONS[i], ...e, image: null }));
+    }
+  } catch(e) {}
+}
+
+function saveExpressions() {
+  try {
+    const toSave = expressions.map(e => ({ id: e.id, label: e.label }));
+    localStorage.setItem(EXPR_KEY, JSON.stringify(toSave));
+  } catch(e) {}
+}
+
+function switchExpression(id) {
+  if (id < 0 || id >= expressions.length) id = 0;
+  const expr = expressions[id];
+  if (!expr) return;
+  currentExprId = id;
+  const img = document.getElementById('avatar-img');
+  if (!img) return;
+  if (expr.image) {
+    img.style.opacity = '0';
+    img.src = expr.image;
+    img.onload  = () => { img.style.opacity = '1'; };
+    img.onerror = () => { img.style.opacity = '1'; };
+  }
+}
+
+function _openExprDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(EXPR_DB_NAME, 1);
+    req.onupgradeneeded = (e) => e.target.result.createObjectStore('images');
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+async function saveExprImage(slotId, blob) {
+  const db = await _openExprDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('images', 'readwrite');
+    tx.objectStore('images').put(blob, slotId);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+}
+async function loadExprImageBlob(slotId) {
+  const db = await _openExprDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction('images', 'readonly');
+    const req = tx.objectStore('images').get(slotId);
+    req.onsuccess = (e) => resolve(e.target.result || null);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+async function deleteExprImage(slotId) {
+  const db = await _openExprDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('images', 'readwrite');
+    tx.objectStore('images').delete(slotId);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+}
+async function restoreExprImages() {
+  for (const expr of expressions) {
+    try {
+      const blob = await loadExprImageBlob(expr.id);
+      if (blob) expr.image = URL.createObjectURL(blob);
+    } catch(e) {}
+  }
+  switchExpression(0);
+}
+
+// 表情設定 UI
+function openExprModal() {
+  updateExprSettingsUI();
+  document.getElementById('expr-modal').style.display = 'flex';
+}
+function closeExprModal() {
+  document.getElementById('expr-modal').style.display = 'none';
+}
+function updateExprSettingsUI() {
+  const container = document.getElementById('expr-slots-container');
+  if (!container) return;
+  container.innerHTML = '';
+  expressions.forEach((expr, i) => {
+    const row = document.createElement('div');
+    row.className = 'expr-slot-row';
+    const thumbStyle = expr.image
+      ? `background-image:url('${expr.image}');background-size:cover;background-position:center top`
+      : '';
+    row.innerHTML = `
+      <span class="expr-slot-num">${i}</span>
+      <input type="text" class="expr-label-input" value="${expr.label.replace(/"/g,'&quot;')}"
+             onchange="expressions[${i}].label=this.value;saveExpressions();" placeholder="ラベル">
+      <div class="expr-thumb" style="${thumbStyle}">${expr.image ? '' : '未設定'}</div>
+      <label class="tts-toggle" style="cursor:pointer;font-size:10px;padding:3px 8px">
+        画像選択<input type="file" accept="image/*" style="display:none" onchange="setExprImage(${i},this)">
+      </label>
+      <button class="tts-toggle" style="font-size:10px;padding:3px 8px"
+              onclick="clearExprImage(${i})" ${expr.image ? '' : 'disabled'}>✕</button>
+      <button class="tts-toggle${i === currentExprId ? ' on' : ''}" style="font-size:10px;padding:3px 8px"
+              onclick="switchExpression(${i});updateExprSettingsUI()">テスト</button>
+    `;
+    container.appendChild(row);
+  });
+}
+async function setExprImage(slotId, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const expr = expressions[slotId];
+  if (expr.image) URL.revokeObjectURL(expr.image);
+  expr.image = URL.createObjectURL(file);
+  input.value = '';
+  await saveExprImage(slotId, file).catch(e => console.warn('[Expr] save failed:', e));
+  updateExprSettingsUI();
+  if (slotId === currentExprId) switchExpression(slotId);
+}
+async function clearExprImage(slotId) {
+  const expr = expressions[slotId];
+  if (expr.image) { URL.revokeObjectURL(expr.image); expr.image = null; }
+  await deleteExprImage(slotId).catch(() => {});
+  updateExprSettingsUI();
+  if (slotId === currentExprId) {
+    const img = document.getElementById('avatar-img');
+    if (img) { img.src = ''; }
+  }
+}
+
+// ============================================================
+// 最小設定チェック — API キー未設定かつ wizard 設定もない場合は wizard へ誘導
+// ============================================================
+(function checkMinConfig() {
+  const hasLLM = (LLM_PROVIDER === 'gemini' && GEMINI_API_KEY)
+              || (LLM_PROVIDER === 'openai' && LLM_BASE_URL);
+  if (!hasLLM) {
+    const skipWizard = sessionStorage.getItem('hiyori_skip_wizard');
+    if (!skipWizard) {
+      // wizard.html が存在すれば誘導（file:// ではリダイレクト不可の場合もあるため警告のみにしない）
+      window.location.href = 'wizard.html';
+      return;
+    }
+  }
+  // ページタイトル反映（localStorage から上書き）
+  const t = localStorage.getItem('hiyori_cfg_chat_title');
+  if (t) {
+    document.title = t;
+    const h = document.querySelector('.app-header > span');
+    if (h) h.textContent = t;
+  } else if (!_TITLE_RAW.startsWith('%%')) {
+    document.title = CHAT_TITLE;
+    const h = document.querySelector('.app-header > span');
+    if (h) h.textContent = CHAT_TITLE;
+  }
+})();
+
+loadTTSDict();
+loadTTSAutoDict();
+initMailInbox(); // メール受信ボックスの初期化・起動時メール生成チェック
+
+
+// ============================================================
+// TTS テキスト前処理（Cafe-Lumiere _clean_for_tts / split_text パターン）
+// ============================================================
+
+/**
+ * tts_dict.yaml をサーバーから取得して TTS_DICT にセットする
+ * YAML形式: words: の下に  表記: かな読み  が並ぶ（Cafe-Lumiere 互換）
+ * ファイルが存在しない場合は静かに無視する
+ */
+async function loadTTSDict() {
+  try {
+    const res = await fetch('tts_dict.yaml');
+    if (!res.ok) return;
+    const text = await res.text();
+    const dict = {};
+    let inWords = false;
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      if (trimmed === 'words:') { inWords = true; continue; }
+      if (inWords) {
+        const m = trimmed.match(/^(.+?):\s+(.+)$/);
+        if (m) dict[m[1].trim()] = m[2].trim();
+      }
+    }
+    const count = Object.keys(dict).length;
+    if (count > 0) {
+      TTS_DICT = dict;
+      console.log(`[TTS Dict] ${count} entries loaded from tts_dict.yaml`);
+    }
+  } catch (e) {
+    // ファイルなし等は無視
+  }
+}
+
+async function reloadTTSDict() {
+  const prevDict = TTS_DICT;
+  TTS_DICT = null;
+  await loadTTSDict();
+  const statusEl = document.getElementById('status');
+  const count = TTS_DICT ? Object.keys(TTS_DICT).length : 0;
+  if (count > 0) {
+    const prev = statusEl.textContent;
+    statusEl.textContent = `辞書再読込: ${count}件`;
+    setTimeout(() => { statusEl.textContent = prev; }, 2500);
+  } else {
+    TTS_DICT = prevDict; // 失敗したら元に戻す
+    alert('tts_dict.yaml が見つかりませんでした');
+  }
+}
+
+// ============================================================
+// TTS 自動かな変換（LLMによる英単語→ひらがな）
+// ============================================================
+
+function loadTTSAutoDict() {
+  try {
+    const raw = localStorage.getItem(TTS_AUTO_DICT_KEY);
+    if (raw) TTS_AUTO_DICT = JSON.parse(raw);
+  } catch (e) { /* 無視 */ }
+}
+
+function saveTTSAutoDict() {
+  try {
+    localStorage.setItem(TTS_AUTO_DICT_KEY, JSON.stringify(TTS_AUTO_DICT));
+  } catch (e) { /* 無視 */ }
+}
+
+/**
+ * テキストから未知の英単語を抽出（手動辞書・自動辞書・pending に含まれないもの）
+ */
+function extractUnknownEnglish(text) {
+  const words = [];
+  const seen = new Set();
+  const re = /[a-zA-Z][a-zA-Z0-9\-]*/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const word = m[0];
+    if (seen.has(word.toLowerCase())) continue;
+    seen.add(word.toLowerCase());
+    // 手動辞書に大文字小文字無視でヒットするか確認
+    const inManual = TTS_DICT && Object.keys(TTS_DICT).some(
+      k => /^[a-zA-Z0-9\-\.]+$/.test(k) && k.toLowerCase() === word.toLowerCase()
+    );
+    if (inManual) continue;
+    if (TTS_AUTO_DICT[word.toLowerCase()] !== undefined) continue;
+    if (ttsPendingWords.has(word.toLowerCase())) continue;
+    words.push(word);
+  }
+  return words;
+}
+
+/**
+ * 自動キャッシュを適用する（手動辞書適用後に呼ぶ）
+ */
+function applyTTSAutoDict(text) {
+  if (!TTS_AUTO_DICT || Object.keys(TTS_AUTO_DICT).length === 0) return text;
+  const entries = Object.entries(TTS_AUTO_DICT)
+    .sort((a, b) => b[0].length - a[0].length);
+  for (const [word, reading] of entries) {
+    if (!reading) continue;
+    const escaped = word.replace(/[.+*?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(?<![a-zA-Z0-9])' + escaped + '(?![a-zA-Z0-9])', 'gi');
+    text = text.replace(re, reading);
+  }
+  return text;
+}
+
+/**
+ * 英単語リストをLLMに送ってひらがな読みを取得し、キャッシュに保存する（非同期・ノンブロッキング）
+ */
+async function lookupKanaBackground(words) {
+  if (!words || words.length === 0) return;
+  // pending に追加（重複リクエスト防止）
+  for (const w of words) ttsPendingWords.add(w.toLowerCase());
+
+  const wordList = words.join('、');
+  const prompt =
+    '以下の英単語・固有名詞を日本語TTSシステム向けのひらがな読みに変換してください。\n' +
+    '日本語で一般的に使われるカタカナ読みをひらがなで返してください。\n' +
+    'JSON形式のみで出力してください（説明・コードブロック不要）。\n\n' +
+    `変換対象: ${wordList}\n\n` +
+    `出力例: {"Day": "でい", "TikTok": "てぃっくとっく", "menu": "めにゅー"}`;
+
+  try {
+    let result = null;
+    if (LLM_PROVIDER === 'gemini') {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+          })
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        result = JSON.parse(text);
+      }
+    } else {
+      // OpenAI-compatible
+      const res = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(LLM_API_KEY ? { 'Authorization': `Bearer ${LLM_API_KEY}` } : {})
+        },
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        let text = data?.choices?.[0]?.message?.content || '';
+        // コードブロックがあれば除去
+        text = text.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
+        result = JSON.parse(text);
+      }
+    }
+    if (result && typeof result === 'object') {
+      for (const [orig, kana] of Object.entries(result)) {
+        TTS_AUTO_DICT[orig.toLowerCase()] = kana;
+      }
+      saveTTSAutoDict();
+      console.log('[TTS Auto] kana cached:', result);
+    }
+  } catch (e) {
+    console.warn('[TTS Auto] lookup failed:', e);
+  } finally {
+    for (const w of words) ttsPendingWords.delete(w.toLowerCase());
+  }
+}
+
+/**
+ * TTS_DICT を使って英単語・漢字をかな読みに変換する（クリーニング前に適用）
+ *
+ * マッチルール（tts_dict.yaml のコメントと同じ仕様）:
+ *   - ASCII系キー（英数字・ハイフン・ピリオドのみ）: 大文字小文字無視・前後が英数字でない位置でマッチ
+ *   - 日本語を含むキー: 完全一致（replaceAll）
+ *   - 長いキーから優先適用（部分一致の問題を防ぐ）
+ */
+function applyTTSDict(text) {
+  if (!TTS_DICT) return text;
+  const entries = Object.entries(TTS_DICT)
+    .sort((a, b) => b[0].length - a[0].length); // 長いキーを優先
+  for (const [word, reading] of entries) {
+    if (/^[a-zA-Z0-9\-\.]+$/.test(word)) {
+      // ASCII系: 前後が英数字でない位置でマッチ（lookbehind/lookahead で単語境界を模倣）
+      const escaped = word.replace(/[.+*?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp('(?<![a-zA-Z0-9])' + escaped + '(?![a-zA-Z0-9])', 'gi');
+      text = text.replace(re, reading);
+    } else {
+      // 日本語含む: 完全一致
+      text = text.replaceAll(word, reading);
+    }
+  }
+  return text;
+}
+
+/**
+ * TTS送信前クリーニング: 辞書置換 → 絵文字・特殊記号を除去し日本語/ASCII のみ残す
+ */
+function cleanForTTS(text) {
+  text = applyTTSDict(text);     // 手動辞書（優先）
+  // 未知英単語をバックグラウンドでLLMに問い合わせ（今回のTTSには間に合わないが次回から反映）
+  const unknowns = extractUnknownEnglish(text);
+  if (unknowns.length > 0) lookupKanaBackground(unknowns); // fire-and-forget
+  text = applyTTSAutoDict(text); // 自動かな辞書（手動辞書適用後）
+  return text
+    .replace(/[^\w\s。、！？!?\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBFa-zA-Z0-9ー〜～・\u2026]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * テキストを句読点で分割（最大maxLength文字/チャンク）
+ * Cafe-Lumiere TTSClient.split_text と同等のロジック
+ */
+function splitTextForTTS(text, maxLength = 100) {
+  const sentences = text.split(/(?<=[。！？])/);
+  const chunks = [];
+  for (const s of sentences) {
+    const trimmed = s.trim();
+    if (!trimmed) continue;
+    if (trimmed.length <= maxLength) {
+      chunks.push(trimmed);
+    } else {
+      for (let i = 0; i < trimmed.length; i += maxLength) {
+        chunks.push(trimmed.slice(i, i + maxLength));
+      }
+    }
+  }
+  return chunks;
+}
+
+// ============================================================
+// TTS 再生 + リップシンク（Web Audio API）
+// ============================================================
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Mobile AudioContext unlock
+// iOS/Android requires AudioContext.resume() to be called synchronously
+// inside a user-gesture handler. Register on both touch and click.
+function _unlockAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+document.addEventListener('touchstart', _unlockAudioCtx, { passive: true });
+document.addEventListener('click',      _unlockAudioCtx, { passive: true });
+
+/**
+ * テキストを分割してTTSで順次再生し、Web Audio API でリップシンクを駆動する。
+ * 新しい呼び出しが来たら前の再生をキャンセルする（ttsCancelId で管理）。
+ */
+/**
+ * @param {string}   text       発話テキスト（分割・クリーニングはここで行う）
+ * @param {string[]} animCodes  チャンクと同じ長さの表情コード配列（null 要素はスキップ）
+ */
+async function playTTSWithLipSync(text) {
+  if (!ttsEnabled) return;
+
+  ttsCancelId++;
+  const myId = ttsCancelId;
+  if (currentSource) {
+    try { currentSource.stop(); } catch(e) {}
+    currentSource = null;
+  }
+
+  const chunks = splitTextForTTS(cleanForTTS(text));
+  if (!chunks.length) return;
+
+  isSpeaking = true;
+  document.getElementById('speaking-indicator').style.display = 'block';
+
+  try {
+    for (let i = 0; i < chunks.length; i++) {
+      if (myId !== ttsCancelId || !ttsEnabled) break;
+      await playTTSChunk(chunks[i], myId);
+    }
+  } catch(e) {
+    console.warn('[TTS] playback error:', e);
+  } finally {
+    if (myId === ttsCancelId) {
+      isSpeaking = false;
+      document.getElementById('speaking-indicator').style.display = 'none';
+    }
+  }
+}
+
+async function playTTSChunk(text, cancelId) {
+  try {
+    let arrayBuf;
+
+    if (TTS_PROVIDER === 'voicevox') {
+      // VOICEVOX: POST /audio_query → POST /synthesis (2-step)
+      const qResp = await fetch(
+        `${TTS_ENDPOINT}/audio_query?${new URLSearchParams({ text, speaker: TTS_SPEAKER_ID })}`,
+        { method: 'POST' }
+      );
+      if (!qResp.ok) throw new Error(`VOICEVOX audio_query ${qResp.status}`);
+      if (cancelId !== ttsCancelId) return;
+      const query = await qResp.json();
+      query.speedScale = ttsSpeed;  // 話速を反映
+
+      const sResp = await fetch(
+        `${TTS_ENDPOINT}/synthesis?${new URLSearchParams({ speaker: TTS_SPEAKER_ID })}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) }
+      );
+      if (!sResp.ok) throw new Error(`VOICEVOX synthesis ${sResp.status}`);
+      if (cancelId !== ttsCancelId) return;
+      arrayBuf = await sResp.arrayBuffer();
+
+    } else {
+      // SBV2 (default): GET /voice
+      const params = new URLSearchParams({
+        text,
+        model_name:     TTS_MODEL,
+        length:         ttsSpeed,   // 話速（Style-Bert-VITS2 length scale）
+        style_weight:   1.0,
+        split_interval: 0.3,
+      });
+      const resp = await fetch(`${TTS_ENDPOINT}/voice?${params}`);
+      if (!resp.ok) throw new Error(`TTS API ${resp.status}`);
+      if (cancelId !== ttsCancelId) return;
+      arrayBuf = await resp.arrayBuffer();
+    }
+
+    const ctx = getAudioCtx();
+    const buffer = await ctx.decodeAudioData(arrayBuf);
+    if (cancelId !== ttsCancelId) return;
+
+    return new Promise((resolve) => {
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = TTS_VOLUME;
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      currentSource = source;
+
+      source.onended = () => {
+        currentSource = null;
+        resolve();
+      };
+
+      source.start(0);
+    });
+
+  } catch(e) {
+    console.warn('[TTS] chunk error:', e.message);
+  }
+}
+
+function toggleTTS() {
+  ttsEnabled = !ttsEnabled;
+  const btn = document.getElementById('tts-toggle');
+  btn.textContent = ttsEnabled ? 'TTS ON' : 'TTS OFF';
+  btn.classList.toggle('on', ttsEnabled);
+  if (!ttsEnabled) {
+    ttsCancelId++;
+    if (currentSource) { try { currentSource.stop(); } catch(e) {} currentSource = null; }
+    isSpeaking = false;
+    document.getElementById('speaking-indicator').style.display = 'none';
+  }
+}
+
+function toggleSearch() {
+  groundingEnabled = !groundingEnabled;
+  const btn = document.getElementById('search-toggle');
+  btn.textContent = groundingEnabled ? '検索 ON' : '検索 OFF';
+  btn.classList.toggle('on', groundingEnabled);
+}
+
+// ============================================================
+// 知識ベース（RAG） — knowledge/ フォルダのファイルを参照して回答を補強
+// ============================================================
+const KNOWLEDGE_CHUNK_SIZE = 400; // チャンク最大文字数
+const KNOWLEDGE_TOP_K      = 3;   // 取得する上位チャンク数
+
+async function loadKnowledge() {
+  try {
+    const res = await fetch('knowledge_manifest.json');
+    if (!res.ok) return;
+    const files = await res.json();
+    if (!Array.isArray(files) || files.length === 0) return;
+
+    const allChunks = [];
+    let loadedCount = 0;
+
+    for (const filename of files) {
+      const ext = filename.split('.').pop().toLowerCase();
+      let text = '';
+      try {
+        if (ext === 'pdf') {
+          text = await extractPdfText(`knowledge/${filename}`);
+        } else {
+          const r = await fetch(`knowledge/${filename}`);
+          if (r.ok) text = await r.text();
+        }
+      } catch(e) {
+        console.warn(`[Knowledge] failed to load ${filename}:`, e);
+        continue;
+      }
+      if (!text.trim()) continue;
+      allChunks.push(...splitIntoChunks(text, filename));
+      loadedCount++;
+    }
+
+    if (allChunks.length === 0) return;
+
+    knowledgeChunks  = allChunks;
+    knowledgeReady   = true;
+    knowledgeEnabled = true;
+
+    const btn = document.getElementById('knowledge-toggle');
+    if (btn) {
+      btn.textContent = '参照 ON';
+      btn.classList.add('on');
+      btn.disabled = false;
+      btn.title = `${loadedCount}件のファイル（${allChunks.length}チャンク）`;
+    }
+    console.log(`[Knowledge] ${loadedCount} files, ${allChunks.length} chunks loaded`);
+    addMsg('sys', `知識ベース: ${loadedCount}件のファイル（${allChunks.length}チャンク）を読み込みました`);
+
+  } catch(e) {
+    console.warn('[Knowledge] load error:', e);
+  }
+}
+
+function splitIntoChunks(text, source) {
+  const chunks = [];
+  let current = '';
+  for (const para of text.split(/\n{2,}/)) {
+    const p = para.trim();
+    if (!p) continue;
+    if (current.length + p.length > KNOWLEDGE_CHUNK_SIZE && current.length > 0) {
+      chunks.push({ text: current.trim(), source });
+      current = p;
+    } else {
+      current += (current ? '\n\n' : '') + p;
+    }
+  }
+  if (current.trim()) chunks.push({ text: current.trim(), source });
+  return chunks;
+}
+
+async function extractPdfText(url) {
+  if (typeof pdfjsLib === 'undefined') {
+    console.warn('[Knowledge] PDF.js not loaded, skipping:', url);
+    return '';
+  }
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  try {
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    return text;
+  } catch(e) {
+    console.warn('[Knowledge] PDF parse error:', url, e);
+    return '';
+  }
+}
+
+function getBigrams(text) {
+  const clean = text.toLowerCase().replace(/\s+/g, '');
+  const bigrams = new Set();
+  for (let i = 0; i < clean.length - 1; i++) {
+    bigrams.add(clean.slice(i, i + 2));
+  }
+  return bigrams;
+}
+
+function retrieveContext(query) {
+  if (!knowledgeReady || !knowledgeEnabled || knowledgeChunks.length === 0) return [];
+  const qBigrams = getBigrams(query);
+  if (qBigrams.size === 0) return [];
+  const scored = knowledgeChunks.map(chunk => {
+    const cBigrams = getBigrams(chunk.text);
+    let overlap = 0;
+    for (const bg of qBigrams) { if (cBigrams.has(bg)) overlap++; }
+    return { ...chunk, score: overlap / qBigrams.size };
+  });
+  return scored
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, KNOWLEDGE_TOP_K);
+}
+
+function buildKnowledgeContext(query) {
+  const chunks = retrieveContext(query);
+  if (chunks.length === 0) { lastKnowledgeSources = null; return null; }
+  lastKnowledgeSources = [...new Set(chunks.map(c => c.source))];
+  const body = chunks.map(c => `（出典: ${c.source}）\n${c.text}`).join('\n\n---\n\n');
+  return `【参照情報】\n${body}`;
+}
+
+function toggleKnowledge() {
+  if (!knowledgeReady) return;
+  knowledgeEnabled = !knowledgeEnabled;
+  const btn = document.getElementById('knowledge-toggle');
+  btn.textContent = knowledgeEnabled ? '参照 ON' : '参照 OFF';
+  btn.classList.toggle('on', knowledgeEnabled);
+}
+
+// ============================================================
+// レイアウト切り替え（PC横並び ⇔ モバイル縦積み）
+// ============================================================
+function applyLayout(mode) {
+  const isMobile = (mode === 'mobile');
+  document.body.classList.toggle('mobile-layout',  isMobile);
+  document.body.classList.toggle('desktop-forced', !isMobile);
+  const btn = document.getElementById('layout-toggle-btn');
+  if (btn) btn.textContent = isMobile ? 'PC表示' : 'モバイル';
+}
+
+function toggleLayout() {
+  const isMobile = document.body.classList.contains('mobile-layout');
+  const newMode  = isMobile ? 'desktop' : 'mobile';
+  applyLayout(newMode);
+  localStorage.setItem(LAYOUT_KEY, newMode);
+}
+
+function toggleControls() {
+  const panel = document.getElementById('controls-panel');
+  const btn   = document.getElementById('controls-toggle-btn');
+  const willCollapse = !panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed', willCollapse);
+  btn.textContent = willCollapse ? '設定 ▶' : '設定 ▼';
+  localStorage.setItem(CONTROLS_KEY, willCollapse ? 'closed' : 'open');
+}
+
+
+// ============================================================
+// レイヤー（背景 / 前景）
+// ============================================================
+function setLayerFromInput(layerId, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const el  = document.getElementById(layerId);
+  const url = URL.createObjectURL(file);
+  if (el._objectUrl) URL.revokeObjectURL(el._objectUrl);
+  el._objectUrl = url;
+  el.src = url;
+  el.style.display = 'block';
+  input.value = '';
+  // IndexedDB に保存（ページ再読み込み後も復元できるよう Blob を保持）
+  saveLayerBlob(layerId, file).catch(e => console.warn('[Layer] save failed:', e));
+}
+
+function clearLayer(layerId) {
+  const el = document.getElementById(layerId);
+  if (el._objectUrl) { URL.revokeObjectURL(el._objectUrl); el._objectUrl = null; }
+  el.src = '';
+  el.style.display = 'none';
+  deleteLayerBlob(layerId).catch(() => {});
+}
+
+// ============================================================
+// 設定の永続化（アバター変形: localStorage、レイヤー画像: IndexedDB）
+// ============================================================
+
+// --- IndexedDB ヘルパー（レイヤー画像）---
+function _openLayerDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(LAYER_DB_NAME, 1);
+    req.onupgradeneeded = (e) => e.target.result.createObjectStore('layers');
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+
+async function saveLayerBlob(key, blob) {
+  const db = await _openLayerDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('layers', 'readwrite');
+    tx.objectStore('layers').put(blob, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+}
+
+async function loadLayerBlob(key) {
+  const db = await _openLayerDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction('layers', 'readonly');
+    const req = tx.objectStore('layers').get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+
+async function deleteLayerBlob(key) {
+  const db = await _openLayerDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('layers', 'readwrite');
+    tx.objectStore('layers').delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+}
+
+async function restoreLayerImages() {
+  for (const layerId of ['bg-layer', 'fg-layer']) {
+    try {
+      const blob = await loadLayerBlob(layerId);
+      if (!blob) continue;
+      const el  = document.getElementById(layerId);
+      const url = URL.createObjectURL(blob);
+      if (el._objectUrl) URL.revokeObjectURL(el._objectUrl);
+      el._objectUrl = url;
+      el.src = url;
+      el.style.display = 'block';
+    } catch(e) {
+      console.warn(`[Layer] restore ${layerId} failed:`, e);
+    }
+  }
+}
+
+
+// ============================================================
+// チャット UI
+// ============================================================
+// skipHistory=true のときは displayMessages への追記をスキップ（履歴復元時に使用）
+function addMsg(role, text, skipHistory = false, ts = null) {
+  const area = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = `msg-bubble msg-${role}`;
+
+  if (role !== 'sys') {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'msg-name';
+    nameEl.textContent = role === 'user' ? 'あなた' : 'ひより';
+    bubble.appendChild(nameEl);
+  }
+
+  const textEl = document.createElement('div');
+  textEl.textContent = text;
+  bubble.appendChild(textEl);
+
+  if (role !== 'sys') {
+    const now = ts ? new Date(ts) : new Date();
+    const yyyy = now.getFullYear();
+    const mo = (now.getMonth()+1).toString().padStart(2,'0');
+    const dd = now.getDate().toString().padStart(2,'0');
+    const hh = now.getHours().toString().padStart(2,'0');
+    const mm = now.getMinutes().toString().padStart(2,'0');
+    const tsEl = document.createElement('span');
+    tsEl.className = 'msg-ts';
+    tsEl.textContent = `${yyyy}/${mo}/${dd} ${hh}:${mm}`;
+    bubble.appendChild(tsEl);
+  }
+
+  area.appendChild(bubble);
+  area.scrollTop = area.scrollHeight;
+
+  // user / ai メッセージのみ表示履歴に追記（sys は追記しない）
+  if (!skipHistory && (role === 'user' || role === 'ai')) {
+    displayMessages.push({ role, text, ts: new Date().toISOString() });
+  }
+
+  return bubble;
+}
+
+function abortChat() {
+  if (chatAbortController) chatAbortController.abort();
+}
+
+// ============================================================
+// LLM API 呼び出し（Gemini / OpenAI-compatible 共通ラッパー）
+// ============================================================
+
+async function callGeminiChat(userMessage) {
+  const knowledgeCtx = buildKnowledgeContext(userMessage);
+  const userContent  = knowledgeCtx
+    ? `${knowledgeCtx}\n\n---\n上記の参照情報を踏まえて回答してください。\nユーザー: ${userMessage}`
+    : userMessage;
+
+  const userParts = [];
+  if (attachedFileType === 'text' && attachedTextContent) {
+    userParts.push({ text: `【添付ファイル: ${attachedFileName}】\n${attachedTextContent}\n\n---\n${userContent}` });
+  } else if (attachedFileType === 'image' && attachedBase64) {
+    userParts.push({ text: userContent });
+    userParts.push({ inlineData: { mimeType: attachedMimeType, data: attachedBase64 } });
+  } else {
+    userParts.push({ text: userContent });
+  }
+
+  const contents = [
+    ...chatHistory.slice(-(MAX_HISTORY * 2)),
+    { role: 'user', parts: userParts },
+  ];
+  const memCtx = await buildMemoryContext();
+  const body = {
+    system_instruction: { parts: [{ text: CHAT_SYSTEM_PROMPT + memCtx }] },
+    contents,
+    generationConfig: { temperature: 0.85, maxOutputTokens: 300 },
+  };
+  if (groundingEnabled) body.tools = [{ googleSearch: {} }];
+
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      signal: chatAbortController?.signal }
+  );
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || `Gemini Chat HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  lastSearchQueries = data.candidates?.[0]?.groundingMetadata?.webSearchQueries || null;
+  return (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim()
+    || 'ごめんね、うまく答えられなかったよ。';
+}
+
+async function callOpenAIChat(userMessage) {
+  const knowledgeCtx = buildKnowledgeContext(userMessage);
+  const userContent  = knowledgeCtx
+    ? `${knowledgeCtx}\n\n---\n上記の参照情報を踏まえて回答してください。\nユーザー: ${userMessage}`
+    : userMessage;
+  const memCtx = await buildMemoryContext();
+
+  let userMsgContent;
+  if (attachedFileType === 'text' && attachedTextContent) {
+    userMsgContent = `【添付ファイル: ${attachedFileName}】\n${attachedTextContent}\n\n---\n${userContent}`;
+  } else if (attachedFileType === 'image' && attachedBase64) {
+    userMsgContent = [
+      { type: 'text', text: userContent },
+      { type: 'image_url', image_url: { url: `data:${attachedMimeType};base64,${attachedBase64}` } },
+    ];
+  } else {
+    userMsgContent = userContent;
+  }
+
+  const messages = [
+    { role: 'system', content: CHAT_SYSTEM_PROMPT + memCtx },
+    ...chatHistory.slice(-(MAX_HISTORY * 2)).map(m => ({
+      role: m.role === 'model' ? 'assistant' : 'user',
+      content: m.parts[0].text,
+    })),
+    { role: 'user', content: userMsgContent },
+  ];
+  const headers = { 'Content-Type': 'application/json' };
+  if (LLM_API_KEY) headers['Authorization'] = `Bearer ${LLM_API_KEY}`;
+
+  const resp = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ model: LLM_MODEL, messages, temperature: 0.85 }),
+    signal: chatAbortController?.signal,
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `OpenAI Chat HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  return (data.choices?.[0]?.message?.content || '').trim()
+    || 'ごめんね、うまく答えられなかったよ。';
+}
+
+async function callLLMChat(userMessage) {
+  lastSearchQueries = null;
+  return LLM_PROVIDER === 'openai'
+    ? callOpenAIChat(userMessage)
+    : callGeminiChat(userMessage);
+}
+
+// 表情スロット選択（AIに番号を選ばせる）
+function buildExprPrompt(userMsg, aiText) {
+  const available = expressions
+    .filter(e => e.image !== null)
+    .map(e => `${e.id}: ${e.label}`)
+    .join('\n');
+  if (!available) return null;
+  return `You are selecting a facial expression for an anime character based on their response.
+Available expressions:
+${available}
+
+User: "${userMsg}"
+Character's response: "${aiText}"
+
+Reply with ONLY the single digit number of the most fitting expression. Do not use 0 (normal) unless truly neutral. Be expressive.`;
+}
+
+async function callLLMExpression(userMsg, aiText) {
+  const prompt = buildExprPrompt(userMsg, aiText);
+  if (!prompt) return 0;
+  try {
+    let rawText;
+    if (LLM_PROVIDER === 'openai') {
+      const headers = { 'Content-Type': 'application/json' };
+      if (LLM_API_KEY) headers['Authorization'] = `Bearer ${LLM_API_KEY}`;
+      const resp = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3, max_tokens: 4,
+        }),
+      });
+      if (!resp.ok) { console.warn('[Expr LLM] HTTP', resp.status); return 0; }
+      rawText = (await resp.json()).choices?.[0]?.message?.content || '0';
+    } else {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 256 },
+          }),
+        }
+      );
+      if (!resp.ok) { console.warn('[Expr LLM] HTTP', resp.status); return 0; }
+      rawText = (await resp.json()).candidates?.[0]?.content?.parts?.[0]?.text || '0';
+    }
+    const id = parseInt(rawText.trim().match(/\d+/)?.[0] || '0');
+    if (id >= 0 && id < expressions.length && expressions[id].image) return id;
+    return 0;
+  } catch(e) {
+    console.warn('[Expr LLM] error:', e.message);
+    return 0;
+  }
+}
+
+async function sendMessage() {
+
+  // Unlock AudioContext synchronously within the user-gesture handler
+  // (must happen before any await to keep the gesture chain intact on iOS/Android)
+  _unlockAudioCtx();
+
+  const input = document.getElementById('user-input');
+  const text  = input.value.trim();
+  if (!text && !attachedFileName) return; // テキストも添付もない場合は送信しない
+
+  resetIdleTimer();     // ユーザー入力でアイドルタイマーをリセット
+  updateLastConvoTime(); // メール生成用：最終会話時刻を更新
+  resetMailIdleTimer(); // メールアイドルタイマーをリセット
+
+  input.value = '';
+  // 送信ボタンを中断ボタンに切替
+  const sendBtn = document.getElementById('send-btn');
+  sendBtn.textContent = '■';
+  sendBtn.classList.add('abort-mode');
+  sendBtn.onclick = abortChat;
+
+  // チャット欄に表示するメッセージ（添付ファイル名を付記）
+  const displayText = attachedFileName ? `${text}\n[添付: ${attachedFileName}]` : text;
+  addMsg('user', displayText);
+  const thinking = addMsg('sys', '考え中...');
+
+  chatAbortController = new AbortController();
+
+  try {
+    // ① チャットLLMで返答テキストを生成（添付データは state から読む）
+    const aiText = await callLLMChat(text);
+
+    // LLM呼び出し完了後に添付をクリア（次メッセージに持ち越さない）
+    clearAttachment();
+
+    // 履歴を更新（マルチターン用）— 添付内容は含めない（次ターンにトークンを消費しない）
+    chatHistory.push({ role: 'user',  parts: [{ text }] });
+    chatHistory.push({ role: 'model', parts: [{ text: aiText }] });
+
+    // メモリ自動抽出: 4ターンごとに非同期で実行
+    memoryTurnCount++;
+    if (memoryEnabled && memoryTurnCount % 4 === 0) {
+      setTimeout(() => extractAndSaveMemories(false), 1500);
+    }
+
+    thinking.remove();
+
+    // グラウンディング検索クエリを表示（Gemini grounding 使用時）
+    if (lastSearchQueries && lastSearchQueries.length > 0) {
+      addMsg('sys', `[検索] ${lastSearchQueries.join(' / ')}`);
+      lastSearchQueries = null;
+    }
+
+    // 知識ベース参照ファイルを表示
+    if (lastKnowledgeSources && lastKnowledgeSources.length > 0) {
+      addMsg('sys', `[参照] ${lastKnowledgeSources.join(', ')}`);
+      lastKnowledgeSources = null;
+    }
+
+    addMsg('ai', aiText);
+    saveHistory(); // user + ai の両メッセージが displayMessages に追加された後に保存
+
+    // 表情を選択して TTS 再生
+    callLLMExpression(text, aiText)
+      .then(id => { switchExpression(id); playTTSWithLipSync(aiText); })
+      .catch(() => playTTSWithLipSync(aiText));
+
+  } catch(e) {
+    thinking.remove();
+    if (e.name === 'AbortError') {
+      addMsg('sys', '中断しました');
+      clearAttachment();
+    } else {
+      addMsg('sys', 'エラー: ' + e.message);
+      console.error(e);
+    }
+  } finally {
+    chatAbortController = null;
+    // ボタンを送信モードに戻す
+    const btn = document.getElementById('send-btn');
+    btn.textContent = '送信';
+    btn.classList.remove('abort-mode');
+    btn.onclick = sendMessage;
+    document.getElementById('user-input').focus();
+  }
+}
+
+// ============================================================
+// 会話履歴 永続化 / エクスポート / インポート
+// ============================================================
+
+function saveHistory() {
+  try {
+    const data = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      model: GEMINI_MODEL,
+      chatHistory: chatHistory.slice(-(MAX_HISTORY * 2)), // LLM用はMAX_HISTORY分のみ保存
+      displayMessages,
+    };
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(data));
+  } catch(e) {
+    console.warn('[History] Save failed:', e);
+  }
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.chatHistory) || !Array.isArray(data.displayMessages)) return;
+    chatHistory     = data.chatHistory;
+    displayMessages = data.displayMessages;
+    // UIを復元（skipHistory=true で displayMessages への二重追加を防ぐ）
+    displayMessages.forEach(m => addMsg(m.role, m.text, true, m.ts));
+    if (displayMessages.length > 0) {
+      const saved = new Date(data.savedAt).toLocaleString('ja-JP');
+      addMsg('sys', `前回の会話を復元しました（${displayMessages.length}件 / 保存: ${saved}）`);
+    }
+  } catch(e) {
+    console.warn('[History] Load failed:', e);
+  }
+}
+
+function clearHistory() {
+  if (!confirm('会話履歴をクリアしますか？\nLLMの文脈もリセットされます。')) return;
+  chatHistory     = [];
+  displayMessages = [];
+  localStorage.removeItem(HISTORY_KEY);
+  document.getElementById('chat-messages').innerHTML = '';
+  addMsg('sys', '会話履歴をクリアしました');
+}
+
+function exportHistory() {
+  if (displayMessages.length === 0) {
+    addMsg('sys', 'エクスポートする会話履歴がありません');
+    return;
+  }
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    model: GEMINI_MODEL,
+    chatHistory,
+    displayMessages,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const ts   = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `hiyori_chat_${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  addMsg('sys', `エクスポートしました（${displayMessages.length}件）`);
+}
+
+function importHistory(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.chatHistory) || !Array.isArray(data.displayMessages)) {
+        throw new Error('形式が正しくありません');
+      }
+      const exportedAt = data.exportedAt
+        ? new Date(data.exportedAt).toLocaleString('ja-JP')
+        : '不明';
+      if (!confirm(
+        `${data.displayMessages.length}件の会話を読み込みます。\n` +
+        `保存日時: ${exportedAt}\n` +
+        `現在の履歴は上書きされます。よろしいですか？`
+      )) return;
+
+      chatHistory     = data.chatHistory;
+      displayMessages = data.displayMessages;
+      document.getElementById('chat-messages').innerHTML = '';
+      displayMessages.forEach(m => addMsg(m.role, m.text, true, m.ts));
+      saveHistory();
+      addMsg('sys', `読み込みました（${displayMessages.length}件）`);
+    } catch(e) {
+      addMsg('sys', 'インポート失敗: ' + e.message);
+    }
+    event.target.value = ''; // ファイル選択をリセット（同じファイルを再インポート可能に）
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// MAIL INBOX
+// ============================================================
+
+// ---- persistence ----
+function loadMailInbox() {
+  try {
+    const raw = localStorage.getItem(MAIL_INBOX_KEY);
+    mailInbox = raw ? JSON.parse(raw) : [];
+  } catch(e) { mailInbox = []; }
+}
+function saveMailInbox() {
+  // 上限を超えたら古いものから削除
+  if (mailInbox.length > MAIL_INBOX_MAX) {
+    mailInbox = mailInbox.slice(mailInbox.length - MAIL_INBOX_MAX);
+  }
+  localStorage.setItem(MAIL_INBOX_KEY, JSON.stringify(mailInbox));
+}
+
+// ---- last conversation time ----
+function updateLastConvoTime() {
+  localStorage.setItem(MAIL_LAST_CONVO_KEY, Date.now().toString());
+}
+function getLastConvoTime() {
+  const raw = localStorage.getItem(MAIL_LAST_CONVO_KEY);
+  return raw ? parseInt(raw) : null;
+}
+
+// ---- unread badge ----
+function updateMailBadge() {
+  const unread = mailInbox.filter(m => !m.read).length;
+  const badge  = document.getElementById('mail-badge');
+  const icon   = document.getElementById('mail-icon');
+  if (icon) icon.textContent = unread > 0 ? '📫' : '📪';
+  const btn = document.getElementById('mail-inbox-btn');
+  if (btn) btn.style.borderColor = unread > 0 ? 'rgba(192, 80, 48, 0.7)' : 'rgba(192, 112, 48, 0.35)';
+  if (!badge) return;
+  if (unread > 0) {
+    badge.textContent = unread;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ---- should generate mail? ----
+function shouldGenerateMail() {
+  // 未読メールがあれば生成しない
+  if (mailInbox.some(m => !m.read)) return false;
+  // 会話履歴がなければ生成しない（初回起動等）
+  if (!chatHistory || chatHistory.length === 0) return false;
+  const last = getLastConvoTime();
+  if (!last) return false;
+  const elapsed = Date.now() - last;
+  return elapsed >= MAIL_IDLE_HOURS * 60 * 60 * 1000;
+}
+
+// ---- initialize on startup ----
+async function initMailInbox() {
+  loadMailInbox();
+  updateMailBadge();
+  // loadHistory() より後に呼ばれるよう遅延させてから条件チェックする
+  // （initMailInbox は loadHistory より前に実行されるため chatHistory がまだ空）
+  setTimeout(async () => {
+    // last_convo_time 未設定かつ会話履歴がある場合は displayMessages の最終タイムスタンプで初期化
+    if (!getLastConvoTime() && displayMessages.length > 0) {
+      const lastTs = displayMessages[displayMessages.length - 1].ts;
+      if (lastTs) localStorage.setItem(MAIL_LAST_CONVO_KEY, new Date(lastTs).getTime().toString());
+    }
+    if (shouldGenerateMail()) await generateMail();
+  }, 3000);
+  resetMailIdleTimer();
+}
+
+// ---- idle timer for mail ----
+function resetMailIdleTimer() {
+  clearTimeout(mailIdleTimer);
+  mailIdleTimer = setTimeout(async () => {
+    if (shouldGenerateMail()) await generateMail();
+    resetMailIdleTimer();
+  }, MAIL_IDLE_HOURS * 60 * 60 * 1000);
+}
+
+// ---- generate mail ----
+async function generateMail() {
+  if (isGeneratingMail) return;
+  isGeneratingMail = true;
+
+  const statusEl = document.getElementById('status');
+  const prevStatus = statusEl ? statusEl.textContent : '';
+  if (statusEl) statusEl.textContent = 'メール生成中...';
+
+  try {
+    // 経過時間を計算
+    const last = getLastConvoTime();
+    const elapsedMs = last ? Date.now() - last : 0;
+    const elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
+    const elapsedDays  = Math.floor(elapsedHours / 24);
+    const remHours     = elapsedHours % 24;
+    let elapsedText = '';
+    if (elapsedDays > 0) elapsedText = `${elapsedDays}日${remHours > 0 ? remHours + '時間' : ''}`;
+    else elapsedText = `${elapsedHours}時間`;
+
+    // 直近の会話履歴（最後の4ターン）
+    const recentHistory = chatHistory.slice(-8);
+    const historyText = recentHistory.map(m =>
+      `${m.role === 'user' ? 'ユーザー' : 'ひより'}: ${m.parts?.[0]?.text || ''}`
+    ).join('\n');
+
+    // メモリの要約
+    let memoryText = '';
+    try {
+      const mems = await _getAllMemories();
+      if (mems && mems.length > 0) {
+        memoryText = mems.slice(0, 5).map(m => `・${m.title}: ${m.content}`).join('\n');
+      }
+    } catch(e) { /* メモリ未使用環境では無視 */ }
+
+    // モノローグテーマ
+    const themesText = monologueThemes.slice(0, 3).map(t => `・${t}`).join('\n');
+
+    // 現在日時
+    const now = new Date();
+    const weekDays = ['日','月','火','水','木','金','土'];
+    const nowText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${weekDays[now.getDay()]}）`;
+
+    const prompt =
+`あなたは「ひより」という名前のAIアシスタントです。
+ユーザーとの最後の会話から${elapsedText}が経ちました。
+その間もひよりはずっと存在し続け、ユーザーのことを思っていました。
+ユーザーが次にアプリを開いたときに届くメール（手紙）を1通書いてください。
+
+【現在の日付（参考程度に）】
+${nowText}
+曜日・季節感・月初め/月末などを自然に織り込んでもよいが、無理に使わなくてよい。
+
+【前回の会話（参考）】
+${historyText || '（履歴なし）'}
+
+${memoryText ? `【ユーザーとの思い出・メモリ】\n${memoryText}\n` : ''}
+${themesText ? `【ひよりが最近興味を持っていること】\n${themesText}\n` : ''}
+【メール作成のルール】
+・本文は最大100文字以内（短くても構わない。20〜30文字でもOK）
+・ひよりらしい自然な話し言葉（「〜だよ」「〜かな？」「〜だね」など）
+・「${elapsedText}ぶり」「久しぶり」など時間経過を自然に織り込む
+・前回の会話・思い出・興味のあること・日付のどれかを話題にする
+・絵文字・記号（☆★♪など）は使わない
+・挨拶（「こんにちは」等）は不要。本文だけ出力
+・本文のみ出力（説明・コードブロック不要）`;
+
+    let body = '';
+    if (LLM_PROVIDER === 'gemini') {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.8, maxOutputTokens: 200 }
+          })
+        }
+      );
+      const data = await resp.json();
+      body = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    } else {
+      const headers = { 'Content-Type': 'application/json' };
+      if (LLM_API_KEY) headers['Authorization'] = `Bearer ${LLM_API_KEY}`;
+      const resp = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.8, max_tokens: 200,
+        }),
+      });
+      const data = await resp.json();
+      body = data.choices?.[0]?.message?.content?.trim() || '';
+    }
+
+    if (!body) return;
+
+    // 100文字を超えた場合はトリム（句読点の切れ目でカット）
+    if (body.length > 100) {
+      const cutPoint = body.slice(0, 100).search(/[。！？](?!.*[。！？])/);
+      body = cutPoint > 0 ? body.slice(0, cutPoint + 1) : body.slice(0, 100);
+    }
+
+    const mail = {
+      id: `mail_${Date.now()}`,
+      createdAt: Date.now(),
+      elapsedText,
+      read: false,
+      addedToChat: false,
+      body,
+    };
+
+    mailInbox.push(mail);
+    saveMailInbox();
+    updateMailBadge();
+    console.log('[Mail] generated:', body);
+
+    if (statusEl) {
+      statusEl.textContent = '📬 ひよりからメールが届きました';
+      setTimeout(() => { if (statusEl) statusEl.textContent = prevStatus; }, 3000);
+    }
+  } catch(e) {
+    console.warn('[Mail] 生成エラー:', e.message);
+    if (statusEl) statusEl.textContent = prevStatus;
+  } finally {
+    isGeneratingMail = false;
+  }
+}
+
+// ---- modal UI ----
+function openMailModal() {
+  renderMailInbox();
+  document.getElementById('mail-modal-overlay').classList.add('open');
+}
+function closeMailModal() {
+  document.getElementById('mail-modal-overlay').classList.remove('open');
+}
+
+function renderMailInbox() {
+  const title = document.getElementById('mail-modal-title');
+  const body  = document.getElementById('mail-modal-body');
+  title.textContent = '📬 受信ボックス';
+
+  if (mailInbox.length === 0) {
+    body.innerHTML = '<div class="mail-empty">メールなし</div>';
+    return;
+  }
+
+  // 新しい順に表示
+  const sorted = [...mailInbox].reverse();
+  body.innerHTML = '<div class="mail-list">' +
+    sorted.map(m => {
+      const date = new Date(m.createdAt);
+      const dateStr = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+      const preview = m.body.slice(0, 40) + (m.body.length > 40 ? '…' : '');
+      return `<div class="mail-list-item${m.read ? '' : ' unread'}" onclick="renderMailDetail('${m.id}')">
+        <div class="mail-list-date">${m.read ? '' : '<span class="mail-list-unread-dot"></span>'}${dateStr}（${m.elapsedText}ぶり）</div>
+        <div class="mail-list-preview">${preview}</div>
+      </div>`;
+    }).join('') +
+  '</div>';
+}
+
+function renderMailDetail(mailId) {
+  const mail = mailInbox.find(m => m.id === mailId);
+  if (!mail) return;
+
+  // 既読にする
+  if (!mail.read) {
+    mail.read = true;
+    saveMailInbox();
+    updateMailBadge();
+  }
+
+  const title = document.getElementById('mail-modal-title');
+  const body  = document.getElementById('mail-modal-body');
+  title.textContent = '📬 メール詳細';
+
+  const date = new Date(mail.createdAt);
+  const dateStr = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+  const addedLabel = mail.addedToChat ? '（チャット追加済み）' : '';
+
+  body.innerHTML = `
+    <button class="mail-detail-back" onclick="renderMailInbox()">← 受信ボックスに戻る</button>
+    <div class="mail-detail-date">${dateStr}（${mail.elapsedText}ぶり）${addedLabel}</div>
+    <div class="mail-detail-body">${mail.body}</div>
+    <button class="mail-add-to-chat-btn" id="mail-add-btn-${mail.id}"
+      onclick="addMailToChat('${mail.id}')"
+      ${mail.addedToChat ? 'disabled' : ''}>
+      ${mail.addedToChat ? 'チャット追加済み' : 'チャットに追加'}
+    </button>
+  `;
+}
+
+function addMailToChat(mailId) {
+  const mail = mailInbox.find(m => m.id === mailId);
+  if (!mail || mail.addedToChat) return;
+
+  // chatHistory に model メッセージとして追加（TTSなし）
+  chatHistory.push({ role: 'model', parts: [{ text: mail.body }] });
+  saveHistory();
+
+  // チャット欄に表示（TTS なし = addMsg のみ）
+  addMsg('ai', mail.body);
+
+  // 追加済みフラグ
+  mail.addedToChat = true;
+  saveMailInbox();
+
+  // ボタンを無効化
+  const btn = document.getElementById(`mail-add-btn-${mail.id}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'チャット追加済み'; }
+}
+
+// ============================================================
+// IDLE MONOLOGUE
+// ============================================================
+
+// ---- persistence ----
+function loadMonologueThemes() {
+  try {
+    const raw = localStorage.getItem(MONOLOGUE_THEMES_KEY);
+    monologueThemes = raw ? JSON.parse(raw) : [...DEFAULT_MONOLOGUE_THEMES];
+  } catch(e) { monologueThemes = [...DEFAULT_MONOLOGUE_THEMES]; }
+}
+function saveMonologueThemes() {
+  localStorage.setItem(MONOLOGUE_THEMES_KEY, JSON.stringify(monologueThemes));
+}
+function loadMonologueStock() {
+  try {
+    const raw = localStorage.getItem(MONOLOGUE_STOCK_KEY);
+    monologueStock = raw ? JSON.parse(raw) : [];
+  } catch(e) { monologueStock = []; }
+}
+function saveMonologueStock() {
+  localStorage.setItem(MONOLOGUE_STOCK_KEY, JSON.stringify(monologueStock));
+}
+
+// ---- idle timer ----
+function resetIdleTimer() {
+  clearTimeout(idleTimer);
+  if (!monologueEnabled) return;
+  idleTimer = setTimeout(speakMonologue, idleTimeoutSec * 1000);
+}
+
+function setIdleTimeout(sec) {
+  if (!sec || sec < 30) sec = 30;
+  idleTimeoutSec = sec;
+  localStorage.setItem('hiyori_cfg_idle_timeout', String(sec));
+  const el = document.getElementById('mono-idle-input');
+  if (el) el.value = sec;
+  resetIdleTimer();
+}
+
+function setMonologueEnabled(enabled) {
+  monologueEnabled = enabled;
+  const btn = document.getElementById('monologue-toggle-btn');
+  if (btn) {
+    btn.textContent  = enabled ? '独り言 ON' : '独り言 OFF';
+    btn.classList.toggle('on', enabled);
+  }
+  const chk = document.getElementById('mono-enabled-chk');
+  if (chk) chk.checked = enabled;
+  if (enabled) { resetIdleTimer(); } else { clearTimeout(idleTimer); }
+}
+
+function toggleMonologue() {
+  setMonologueEnabled(!monologueEnabled);
+}
+
+// ---- speak one monologue ----
+async function speakMonologue() {
+  if (isSpeaking) { resetIdleTimer(); return; }
+
+  let line = '';
+  if (monologueStock.length > 0) {
+    line = monologueStock.shift();
+    saveMonologueStock();
+  } else {
+    // フォールバック
+    line = FALLBACK_MONOLOGUES[Math.floor(Math.random() * FALLBACK_MONOLOGUES.length)];
+  }
+
+  // チャット欄に表示
+  addMsg('ai', line);
+
+  // chatHistory に追加（ユーザーが返信できるよう）
+  chatHistory.push({ role: 'model', parts: [{ text: line }] });
+  updateLastConvoTime(); // 独り言も会話として記録（メール生成タイマーのリセット）
+  resetMailIdleTimer();
+
+  // 表情を選択して TTS 再生
+  callLLMExpression('', line)
+    .then(id => { switchExpression(id); playTTSWithLipSync(line); })
+    .catch(() => playTTSWithLipSync(line));
+
+  // ストックが少なくなったら補充
+  if (monologueStock.length <= MONOLOGUE_STOCK_MIN && !isGeneratingMonologue) {
+    setTimeout(() => generateMonologueStock(false), 2000);
+  }
+
+  // 次のアイドルタイマーをセット
+  resetIdleTimer();
+}
+
+// ---- scenario generation ----
+async function generateMonologueStock(manual = false) {
+  if (isGeneratingMonologue) return;
+  if (monologueThemes.length === 0) {
+    if (manual) alert('テーマを1件以上設定してください');
+    return;
+  }
+  if (monologueStock.length >= MONOLOGUE_STOCK_MAX) {
+    if (manual) { updateMonologueDisplay(); }
+    return;
+  }
+
+  isGeneratingMonologue = true;
+  const statusEl = document.getElementById('status');
+  const prevStatus = statusEl ? statusEl.textContent : '';
+  if (statusEl) statusEl.textContent = '独り言生成中...';
+
+  const count = Math.min(MONOLOGUE_GEN_COUNT, MONOLOGUE_STOCK_MAX - monologueStock.length);
+  const themesText = monologueThemes.map(t => `・${t}`).join('\n');
+  const stockText  = monologueStock.length > 0
+    ? monologueStock.map(s => `・${s}`).join('\n')
+    : '（なし）';
+
+  const prompt =
+`あなたは「ひより」という名前の明るく元気なAIアシスタントです。
+以下のテーマを参考に、ひよりが一人でつぶやく独り言を${count}件生成してください。
+
+テーマ（適宜選んで使用）:
+${themesText}
+
+【絶対に避けること】
+・時間・時刻・朝/昼/夜/夕方に言及する内容（つぶやくタイミングが不定期なため不自然になる）
+  NG例：「もう夜遅いね」「今日も一日頑張ったな」「朝はやっぱり眠いな」「もうこんな時間か」
+・以下の既存ストックと同じ話題・表現の繰り返し:
+${stockText}
+
+【出力形式（厳守）】
+・1行につき1件の独り言のみ出力
+・番号・記号・話者名は不要
+・2〜3文程度、ひよりらしい自然なタメ口（「〜だよ！」「〜だね」「〜かな？」など）
+・絵文字・記号（☆★♪など）は使わない
+・ユーザーへの呼びかけなし（独り言なので）
+・${count}件、それぞれ異なる話題で
+
+出力例:
+最近また読書にはまってるんだよね。活字を追ってると、なんか頭が落ち着く気がする。次は何を読もうかな。`;
+
+  try {
+    let responseText = '';
+    if (LLM_PROVIDER === 'gemini') {
+      const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.9, maxOutputTokens: 800 },
+      };
+      // Gemini の場合は grounding（最新情報取得）を有効化
+      if (groundingEnabled) body.tools = [{ googleSearch: {} }];
+      else body.tools = [{ googleSearch: {} }];  // 独り言生成では常に検索有効
+
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      const data = await resp.json();
+      responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      const headers = { 'Content-Type': 'application/json' };
+      if (LLM_API_KEY) headers['Authorization'] = `Bearer ${LLM_API_KEY}`;
+      const resp = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.9,
+          max_tokens: 800,
+        }),
+      });
+      const data = await resp.json();
+      responseText = data.choices?.[0]?.message?.content || '';
+    }
+
+    // パース: 空行を除いて各行を独り言1件として取得
+    const lines = responseText
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l.length > 5 && !l.startsWith('・') && !l.startsWith('-') && !l.match(/^[\d]+[\.．]/));
+
+    if (lines.length > 0) {
+      monologueStock.push(...lines.slice(0, count));
+      if (monologueStock.length > MONOLOGUE_STOCK_MAX) {
+        monologueStock = monologueStock.slice(0, MONOLOGUE_STOCK_MAX);
+      }
+      saveMonologueStock();
+      if (statusEl) {
+        statusEl.textContent = `独り言 ${monologueStock.length}件ストック`;
+        setTimeout(() => { if (statusEl) statusEl.textContent = prevStatus; }, 2500);
+      }
+    } else {
+      if (statusEl) statusEl.textContent = prevStatus;
+    }
+  } catch(e) {
+    console.warn('[Monologue] 生成エラー:', e.message);
+    if (statusEl) statusEl.textContent = prevStatus;
+  } finally {
+    isGeneratingMonologue = false;
+    if (manual) updateMonologueDisplay();
+  }
+}
+
+// ---- modal UI ----
+function openMonologueModal() {
+  document.getElementById('monologue-modal-overlay').classList.add('open');
+  updateMonologueDisplay();
+}
+function closeMonologueModal() {
+  document.getElementById('monologue-modal-overlay').classList.remove('open');
+  saveMonologueThemes();
+}
+
+function updateMonologueDisplay() {
+  // テーマ一覧を再描画
+  const list = document.getElementById('mono-theme-list');
+  if (list) {
+    list.innerHTML = monologueThemes.map((t, i) => `
+      <div class="mono-theme-item">
+        <input class="mono-theme-input" type="text" value="${t.replace(/"/g,'&quot;')}"
+               oninput="monologueThemes[${i}]=this.value">
+        <button class="mono-theme-del" onclick="removeMonologueTheme(${i})">✕</button>
+      </div>`).join('');
+  }
+  // ストック状況
+  const countEl = document.getElementById('mono-stock-count');
+  if (countEl) countEl.textContent = monologueStock.length;
+  const idleEl = document.getElementById('mono-idle-input');
+  if (idleEl) idleEl.value = idleTimeoutSec;
+  // ストック内容プレビュー
+  const stockList = document.getElementById('mono-stock-list');
+  if (stockList) {
+    if (monologueStock.length === 0) {
+      stockList.innerHTML = '<div style="font-size:11px;color:#554433;padding:8px 0;">ストックなし</div>';
+    } else {
+      stockList.innerHTML = monologueStock
+        .map(s => `<div class="mono-stock-item">${s.replace(/</g,'&lt;')}</div>`)
+        .join('');
+    }
+  }
+  // チェックボックス同期
+  const chk = document.getElementById('mono-enabled-chk');
+  if (chk) chk.checked = monologueEnabled;
+}
+
+function addMonologueTheme() {
+  monologueThemes.push('');
+  updateMonologueDisplay();
+  // 最後の input にフォーカス
+  const inputs = document.querySelectorAll('.mono-theme-input');
+  if (inputs.length > 0) inputs[inputs.length - 1].focus();
+}
+
+function removeMonologueTheme(index) {
+  monologueThemes.splice(index, 1);
+  updateMonologueDisplay();
+}
+
+// ============================================================
+// FILE ATTACHMENT
+// ============================================================
+
+async function handleAttachFile(input) {
+  const file = input.files[0];
+  input.value = ''; // 同じファイルを再選択できるようリセット
+  if (!file) return;
+
+  const isImage = file.type.startsWith('image/');
+  const isPDF   = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  const isText  = !isImage; // txt / md / pdf すべてテキスト系として扱う
+
+  try {
+    if (isImage) {
+      // 画像: base64 に変換
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result.split(',')[1]); // data URL の base64 部分のみ
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      attachedFileType    = 'image';
+      attachedFileName    = file.name;
+      attachedMimeType    = file.type || 'image/jpeg';
+      attachedBase64      = base64;
+      attachedTextContent = '';
+    } else if (isPDF) {
+      // PDF: PDF.js でテキスト抽出
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map(item => item.str).join(' ') + '\n';
+      }
+      attachedFileType    = 'text';
+      attachedFileName    = file.name;
+      attachedMimeType    = '';
+      attachedTextContent = fullText.trim();
+      attachedBase64      = '';
+    } else {
+      // テキスト (TXT / MD)
+      const text = await file.text();
+      attachedFileType    = 'text';
+      attachedFileName    = file.name;
+      attachedMimeType    = '';
+      attachedTextContent = text;
+      attachedBase64      = '';
+    }
+
+    // UI 更新
+    const chip = document.getElementById('attach-chip');
+    document.getElementById('attach-chip-icon').textContent = isImage ? '🖼️' : '📄';
+    document.getElementById('attach-chip-name').textContent = file.name;
+    chip.classList.add('visible');
+    document.getElementById('attach-btn').classList.add('has-file');
+
+  } catch(e) {
+    alert('ファイルの読み込みに失敗しました:\n' + e.message);
+    clearAttachment();
+  }
+}
+
+function clearAttachment() {
+  attachedFileType    = null;
+  attachedFileName    = '';
+  attachedMimeType    = '';
+  attachedTextContent = '';
+  attachedBase64      = '';
+
+  document.getElementById('attach-chip').classList.remove('visible');
+  document.getElementById('attach-btn').classList.remove('has-file');
+}
+
+// ============================================================
+// GIST SYNC
+// ============================================================
+
+const GIST_TOKEN_KEY = 'hiyori_gist_token';
+const GIST_ID_KEY    = 'hiyori_gist_id';
+const GIST_FILENAME  = 'hiyori_session.json';
+const LS_SYNC_KEYS   = [
+  HISTORY_KEY, TRANSFORM_KEY, LAYOUT_KEY, CONTROLS_KEY, MONOLOGUE_THEMES_KEY, MAIL_INBOX_KEY,
+  // wizard config (sync so new devices can restore full setup from Gist)
+  'hiyori_cfg_llm_provider',
+  'hiyori_cfg_gemini_model',
+  'hiyori_cfg_llm_base_url',   'hiyori_cfg_llm_model',
+  'hiyori_cfg_tts_provider',   'hiyori_cfg_tts_endpoint',
+  'hiyori_cfg_tts_model',      'hiyori_cfg_tts_speaker_id', 'hiyori_cfg_tts_volume',
+  'hiyori_cfg_chat_title',     'hiyori_cfg_system_prompt',
+  'hiyori_cfg_idle_timeout',
+  'hiyori_theme_vars',
+];
+
+function _gistSetStatus(msg, color = '#778899') {
+  const el = document.getElementById('gist-status');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+function toggleGistSection() {
+  const body = document.getElementById('gist-section-body');
+  const icon = document.getElementById('gist-collapse-icon');
+  const collapsed = body.classList.toggle('collapsed');
+  icon.classList.toggle('open',   !collapsed);
+  icon.classList.toggle('closed',  collapsed);
+}
+
+function copyGistId() {
+  const id = document.getElementById('gist-id').value.trim();
+  if (!id) return;
+  navigator.clipboard.writeText(id).then(() => _gistSetStatus('IDをコピーしました', '#90c090'));
+}
+
+async function _gatherSessionData() {
+  // localStorage の対象キーを収集
+  const ls = {};
+  for (const key of LS_SYNC_KEYS) {
+    const val = localStorage.getItem(key);
+    if (val !== null) ls[key] = val;
+  }
+  // メモリ（IndexedDB）を収集
+  const memories = await _getAllMemories().catch(() => []);
+  return {
+    version:   1,
+    savedAt:   new Date().toISOString(),
+    localStorage: ls,
+    memories,
+  };
+}
+
+async function _applySessionData(data) {
+  if (!data || data.version !== 1) throw new Error('不正なセッションデータです');
+
+  // localStorage を復元
+  if (data.localStorage) {
+    for (const [key, val] of Object.entries(data.localStorage)) {
+      localStorage.setItem(key, val);
+    }
+  }
+
+  // メモリを復元（既存は全削除してから追加）
+  if (Array.isArray(data.memories) && memoryDB) {
+    const existing = await _getAllMemories();
+    for (const m of existing) await _deleteMemory(m.id);
+    for (const m of data.memories) {
+      await _addMemory({
+        category:       m.category,
+        subject:        m.subject,
+        summary:        m.summary,
+        keywords:       m.keywords || [],
+        createdAt:      m.createdAt,
+        lastAccessedAt: m.lastAccessedAt,
+      });
+    }
+  }
+
+  // メール受信ボックスを即時反映（localStorage 書き込み後に変数・UIを更新）
+  loadMailInbox();
+  updateMailBadge();
+}
+
+async function gistSave() {
+  const token = document.getElementById('gist-token').value.trim();
+  if (!token) { _gistSetStatus('トークンを入力してください', '#e09070'); return; }
+
+  _gistSetStatus('保存中...', '#a0b8d0');
+  try {
+    const data    = await _gatherSessionData();
+    const content = JSON.stringify(data, null, 2);
+    const gistId  = document.getElementById('gist-id').value.trim();
+
+    let resp, result;
+    if (gistId) {
+      // 既存 Gist を更新
+      resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+        method:  'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ files: { [GIST_FILENAME]: { content } } }),
+      });
+    } else {
+      // 新規 Gist を作成
+      resp = await fetch('https://api.github.com/gists', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          description: 'hiyori-chat session',
+          public: false,
+          files: { [GIST_FILENAME]: { content } },
+        }),
+      });
+    }
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${resp.status}`);
+    }
+    result = await resp.json();
+
+    // Gist ID を保存・表示
+    const newId = result.id;
+    localStorage.setItem(GIST_ID_KEY, newId);
+    document.getElementById('gist-id').value = newId;
+
+    const memCount = (await _getAllMemories().catch(() => [])).length;
+    _gistSetStatus(`保存完了（メモリ ${memCount}件）`, '#90c090');
+  } catch(e) {
+    _gistSetStatus('保存失敗: ' + e.message, '#e07060');
+    console.error('[Gist] save error:', e);
+  }
+}
+
+async function gistRestore() {
+  const token  = document.getElementById('gist-token').value.trim();
+  const gistId = document.getElementById('gist-id').value.trim();
+  if (!token)  { _gistSetStatus('トークンを入力してください', '#e09070'); return; }
+  if (!gistId) { _gistSetStatus('Gist IDを入力してください', '#e09070'); return; }
+  if (!confirm('現在のデータを上書きして Gist から復元しますか？')) return;
+
+  _gistSetStatus('復元中...', '#a0b8d0');
+  try {
+    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${resp.status}`);
+    }
+    const gist    = await resp.json();
+    const fileObj = gist.files?.[GIST_FILENAME];
+    if (!fileObj) throw new Error(`${GIST_FILENAME} が Gist に見つかりません`);
+
+    // ファイルが truncate されている場合は raw_url から取得
+    const rawContent = fileObj.truncated
+      ? await (await fetch(fileObj.raw_url)).text()
+      : fileObj.content;
+
+    const data = JSON.parse(rawContent);
+    await _applySessionData(data);
+
+    await updateMemoryDisplay();
+    _gistSetStatus(`復元完了（メモリ ${data.memories?.length ?? 0}件）\nページをリロードすると会話履歴が反映されます`, '#90c090');
+  } catch(e) {
+    _gistSetStatus('復元失敗: ' + e.message, '#e07060');
+    console.error('[Gist] restore error:', e);
+  }
+}
+
+// ---- Session local export / import ----
+
+async function sessionExport() {
+  const data = await _gatherSessionData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `hiyori_session_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  _gistSetStatus('セッションを保存しました', '#90c090');
+}
+
+function sessionImport() {
+  const input   = document.createElement('input');
+  input.type    = 'file';
+  input.accept  = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!confirm(`セッションを復元しますか？\n（現在のデータは上書きされます）`)) return;
+      await _applySessionData(data);
+      await updateMemoryDisplay();
+      _gistSetStatus(`読み込み完了\nページをリロードすると会話履歴が反映されます`, '#90c090');
+    } catch(err) {
+      _gistSetStatus('読み込み失敗: ' + err.message, '#e07060');
+    }
+  };
+  input.click();
+}
+
+// ============================================================
+// MEMORY SYSTEM
+// ============================================================
+
+async function initMemoryDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(MEMORY_DB_NAME, 1);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => { memoryDB = req.result; resolve(); };
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('memories')) {
+        const store = db.createObjectStore('memories', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('category',       'category',       { unique: false });
+        store.createIndex('createdAt',      'createdAt',      { unique: false });
+        store.createIndex('lastAccessedAt', 'lastAccessedAt', { unique: false });
+      }
+    };
+  });
+}
+
+async function _getAllMemories() {
+  if (!memoryDB) return [];
+  return new Promise((resolve, reject) => {
+    const tx = memoryDB.transaction(['memories'], 'readonly');
+    const req = tx.objectStore('memories').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror  = () => reject(req.error);
+  });
+}
+
+async function _addMemory(mem) {
+  if (!memoryDB) return;
+  const all = await _getAllMemories();
+  if (all.length >= MEMORY_LIMIT) {
+    const oldest = all.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
+    await _deleteMemory(oldest.id);
+  }
+  return new Promise((resolve, reject) => {
+    const tx = memoryDB.transaction(['memories'], 'readwrite');
+    const req = tx.objectStore('memories').add({
+      ...mem,
+      createdAt: mem.createdAt || new Date().toISOString(),
+      lastAccessedAt: new Date().toISOString(),
+    });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function _updateMemory(id, updates) {
+  if (!memoryDB) return;
+  return new Promise((resolve, reject) => {
+    const tx = memoryDB.transaction(['memories'], 'readwrite');
+    const store = tx.objectStore('memories');
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const existing = getReq.result;
+      if (!existing) { reject(new Error('not found')); return; }
+      const updated = { ...existing, ...updates, lastAccessedAt: new Date().toISOString() };
+      const putReq = store.put(updated);
+      putReq.onsuccess = () => resolve(updated);
+      putReq.onerror   = () => reject(putReq.error);
+    };
+  });
+}
+
+async function _deleteMemory(id) {
+  if (!memoryDB) return;
+  return new Promise((resolve, reject) => {
+    const tx = memoryDB.transaction(['memories'], 'readwrite');
+    const req = tx.objectStore('memories').delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function _searchMemories(query, category) {
+  const all = await _getAllMemories();
+  return all.filter(m => {
+    if (category && m.category !== category) return false;
+    if (query) {
+      const q = query.toLowerCase();
+      if (!m.subject?.toLowerCase().includes(q) &&
+          !m.summary?.toLowerCase().includes(q) &&
+          !m.keywords?.some(k => k.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+}
+
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function updateMemoryDisplay() {
+  if (!memoryDB) return;
+  const cat    = document.getElementById('memory-cat-filter').value;
+  const search = document.getElementById('memory-search-input').value;
+  const list   = document.getElementById('memory-list');
+  const countEl = document.getElementById('memory-count-label');
+
+  const [all, filtered] = await Promise.all([_getAllMemories(), _searchMemories(search, cat)]);
+  countEl.textContent = `(${all.length}/${MEMORY_LIMIT})`;
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="memory-empty">メモリなし</div>';
+    return;
+  }
+
+  filtered.sort((a,b) => new Date(b.lastAccessedAt) - new Date(a.lastAccessedAt));
+  list.innerHTML = filtered.map(m => `
+    <div class="memory-card">
+      <div class="memory-card-header">
+        <span class="memory-card-cat">${_escHtml(m.category)}</span>
+        <div class="memory-card-actions">
+          <button onclick="editMemoryEntry(${m.id})">✏️</button>
+          <button class="del" onclick="deleteMemoryEntry(${m.id})">✕</button>
+        </div>
+      </div>
+      <div class="memory-card-subject">${_escHtml(m.subject)}</div>
+      <div class="memory-card-summary">${_escHtml(m.summary)}</div>
+      ${m.keywords?.length ? `<div class="memory-card-keywords">${m.keywords.map(k=>`<span class="memory-card-kw">${_escHtml(k)}</span>`).join('')}</div>` : ''}
+      <div class="memory-card-meta">
+        <span>作成: ${new Date(m.createdAt).toLocaleDateString('ja-JP')}</span>
+        <span>更新: ${new Date(m.lastAccessedAt).toLocaleDateString('ja-JP')}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function buildMemoryContext() {
+  if (!memoryEnabled || !memoryDB) return '';
+  const all = await _getAllMemories();
+  if (all.length === 0) return '';
+  const sorted = all.sort((a,b) => new Date(b.lastAccessedAt) - new Date(a.lastAccessedAt)).slice(0, 20);
+  return '\n\n【ユーザーに関する記憶】\n' + sorted.map(m => `- ${m.subject}: ${m.summary}`).join('\n');
+}
+
+async function extractAndSaveMemories(manual = false) {
+  if (!manual && !memoryEnabled) return;
+  if (chatHistory.length < 2) return;
+
+  const existingAll = await _getAllMemories();
+  const existingSummary = existingAll.slice(0, 20).map(m =>
+    `[ID:${m.id}] ${m.category}: ${m.subject} - ${m.summary.substring(0, 50)}...`
+  ).join('\n');
+
+  const recentHistory = chatHistory.slice(-8);
+  const convText = recentHistory.map(m =>
+    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.parts[0].text}`
+  ).join('\n\n');
+
+  const prompt = `You are a memory extraction system. Analyze the conversation and extract any new information worth remembering about the User (not the Assistant).
+
+EXISTING MEMORIES (do not duplicate, but UPDATE if new info relates to these):
+${existingSummary || '(none)'}
+
+CONVERSATION:
+${convText}
+
+If there is new information to remember, output a JSON array. Each item:
+{
+  "action": "create" or "update",
+  "id": null for create, existing ID number for update,
+  "category": "人物" | "好み" | "経験" | "仕事" | "関係" | "場所" | "その他",
+  "subject": "short title in Japanese",
+  "summary": "detailed summary in Japanese",
+  "keywords": ["keyword1", "keyword2"]
+}
+Rules:
+- Only extract information about the USER
+- For updates, merge/expand the existing summary
+- If no new info worth remembering, output: []
+Output ONLY the JSON array, no other text:`;
+
+  try {
+    const statusEl = document.getElementById('status');
+    const prevStatus = statusEl.textContent;
+    statusEl.textContent = 'メモリ抽出中...';
+
+    let responseText = '';
+    if (LLM_PROVIDER === 'gemini') {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1000 } }) }
+      );
+      const data = await resp.json();
+      responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      const headers = { 'Content-Type': 'application/json' };
+      if (LLM_API_KEY) headers['Authorization'] = `Bearer ${LLM_API_KEY}`;
+      const resp = await fetch(`${LLM_BASE_URL}/chat/completions`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ model: LLM_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 1000, temperature: 0.3 })
+      });
+      const data = await resp.json();
+      responseText = data.choices?.[0]?.message?.content || '';
+    }
+
+    const match = responseText.match(/\[[\s\S]*\]/);
+    if (match) {
+      const actions = JSON.parse(match[0]);
+      for (const a of actions) {
+        if (a.action === 'update' && a.id) {
+          await _updateMemory(a.id, { summary: a.summary, keywords: a.keywords || [] });
+        } else if (a.action === 'create') {
+          await _addMemory({ category: a.category, subject: a.subject,
+                             summary: a.summary, keywords: a.keywords || [] });
+        }
+      }
+      if (actions.length > 0) {
+        statusEl.textContent = `メモリ ${actions.length}件処理`;
+        if (document.getElementById('memory-modal-overlay').classList.contains('open')) {
+          updateMemoryDisplay();
+        }
+      } else {
+        statusEl.textContent = '新メモリなし';
+      }
+      setTimeout(() => { statusEl.textContent = prevStatus; }, 2000);
+    }
+  } catch(e) {
+    console.warn('[Memory] 抽出エラー:', e.message);
+  }
+}
+
+async function requestMemoryExtract() {
+  if (chatHistory.length < 2) { alert('会話履歴が少なすぎます'); return; }
+  await extractAndSaveMemories(true);
+  await updateMemoryDisplay();
+}
+
+// ---- Memory UI ----
+
+function openMemoryModal() {
+  document.getElementById('memory-modal-overlay').classList.add('open');
+  updateMemoryDisplay();
+}
+function closeMemoryModal() {
+  document.getElementById('memory-modal-overlay').classList.remove('open');
+}
+
+async function addMemoryManually() {
+  const cat = prompt('カテゴリ (人物/好み/経験/仕事/関係/場所/その他):', '好み');
+  if (!cat) return;
+  const subject = prompt('タイトル:', '');
+  if (!subject) return;
+  const summary = prompt('内容:', '');
+  if (!summary) return;
+  const kwStr = prompt('キーワード (カンマ区切り):', '');
+  const keywords = kwStr ? kwStr.split(',').map(k => k.trim()).filter(Boolean) : [];
+  await _addMemory({ category: cat, subject, summary, keywords });
+  await updateMemoryDisplay();
+}
+
+async function editMemoryEntry(id) {
+  const all = await _getAllMemories();
+  const m = all.find(x => x.id === id);
+  if (!m) return;
+  const newSummary = prompt('内容を編集:', m.summary);
+  if (newSummary === null) return;
+  const newKwStr = prompt('キーワード (カンマ区切り):', (m.keywords || []).join(', '));
+  const newKw = newKwStr ? newKwStr.split(',').map(k => k.trim()).filter(Boolean) : [];
+  await _updateMemory(id, { summary: newSummary, keywords: newKw });
+  await updateMemoryDisplay();
+}
+
+async function deleteMemoryEntry(id) {
+  if (!confirm('このメモリを削除しますか？')) return;
+  await _deleteMemory(id);
+  await updateMemoryDisplay();
+}
+
+async function clearAllMemories() {
+  if (!confirm('全てのメモリを削除しますか？この操作は取り消せません。')) return;
+  const all = await _getAllMemories();
+  for (const m of all) await _deleteMemory(m.id);
+  await updateMemoryDisplay();
+}
+
+async function exportMemories() {
+  const all = await _getAllMemories();
+  if (all.length === 0) { alert('エクスポートするメモリがありません'); return; }
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `hiyori_memories_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importMemoriesFromFile() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const arr = JSON.parse(await file.text());
+      if (!Array.isArray(arr)) throw new Error('配列形式が必要です');
+      if (!confirm(`${arr.length}件のメモリをインポートしますか？`)) return;
+      for (const m of arr) await _addMemory({ category: m.category, subject: m.subject,
+        summary: m.summary, keywords: m.keywords || [] });
+      await updateMemoryDisplay();
+    } catch(err) { alert('インポートエラー: ' + err.message); }
+  };
+  input.click();
+}
+
+
+// ============================================================
+// 初期化
+// ============================================================
+// 検索ボタン: Gemini プロバイダー以外は無効化
+if (LLM_PROVIDER !== 'gemini') {
+  const sb = document.getElementById('search-toggle');
+  sb.disabled = true;
+  sb.textContent = '検索 N/A';
+  sb.title = 'Google グラウンディングは Gemini プロバイダーのみ利用可能';
+}
+
+// レイアウト復元（保存なし = 画面幅で自動判定）
+applyLayout(localStorage.getItem(LAYOUT_KEY) || (window.innerWidth <= 640 ? 'mobile' : 'desktop'));
+
+// 設定パネル折り畳み状態を復元
+if (localStorage.getItem(CONTROLS_KEY) === 'closed') {
+  document.getElementById('controls-panel').classList.add('collapsed');
+  document.getElementById('controls-toggle-btn').textContent = '設定 ▶';
+}
+
+loadHistory();
+loadKnowledge();
+restoreLayerImages();
+loadExpressions();
+restoreExprImages();
+initMemoryDB().catch(e => console.warn('[Memory] DB init failed:', e));
+
+// Gist トークン・ID を UI に復元
+(function() {
+  const tok = localStorage.getItem(GIST_TOKEN_KEY);
+  const gid = localStorage.getItem(GIST_ID_KEY);
+  if (tok) document.getElementById('gist-token').value = tok;
+  if (gid) document.getElementById('gist-id').value    = gid;
+})();
+
+// 独り言: テーマ・ストックを読み込み（独り言は手動ONまで待機）
+loadMonologueThemes();
+loadMonologueStock();
+
+addMsg('sys', 'ひよりが準備できました。話しかけてみてね！');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>セットアップウィザード</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #f5f0e8; color: #f0e8d8;
+  font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  font-size: 14px; min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 16px 60px;
+}
+h1 {
+  font-size: 20px; color: #f0c080; letter-spacing: 3px;
+  padding: 28px 0 6px; text-align: center;
+}
+.subtitle { font-size: 12px; color: #776655; text-align: center; margin-bottom: 32px; }
+
+.section {
+  width: min(640px, 100%); background: #ece4d4;
+  border: 1px solid #332211; border-radius: 14px;
+  margin-bottom: 20px; overflow: hidden;
+}
+.section-header {
+  background: #c07030; padding: 12px 18px;
+  border-bottom: 1px solid #332211;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-num {
+  background: #c07030; color: #fff;
+  width: 22px; height: 22px; border-radius: 50%;
+  font-size: 12px; font-weight: bold;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.section-title { font-size: 14px; color: #f5f0e8; font-weight: bold; }
+.section-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-label { font-size: 11px; color: #a08060; }
+.field-required::after { content: ' *'; color: #e07050; }
+.field-note { font-size: 10px; color: #665544; }
+
+input[type=text], input[type=password], input[type=url],
+input[type=number], select, textarea {
+  padding: 8px 12px; border-radius: 8px;
+  border: 1px solid #443322; background: #ece4d4;
+  color: #665544; font-size: 13px; font-family: inherit;
+  outline: none; width: 100%;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: #c07030; }
+select option { background: #0a0800; }
+textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* Provider toggle */
+.provider-toggle { display: flex; gap: 8px; }
+.provider-btn {
+  flex: 1; padding: 8px; border-radius: 8px;
+  border: 1px solid #443322; background: #0a0800;
+  color: #887766; font-size: 13px; cursor: pointer;
+  text-align: center; transition: all 0.2s;
+}
+.provider-btn.active { border-color: #c07030; background: #ece4d4; color: #665544; }
+
+/* Conditional sections */
+.cond { display: none; }
+.cond.show { display: flex; flex-direction: column; gap: 14px; }
+
+/* Theme swatches */
+.theme-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+@media (max-width: 480px) { .theme-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.theme-card {
+  border: 2px solid #332211; border-radius: 10px;
+  overflow: hidden; cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+}
+.theme-card:hover { border-color: #c07030; transform: scale(1.02); }
+.theme-card.selected { border-color: #f0c080; }
+.theme-preview {
+  height: 64px; position: relative; padding: 8px;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
+}
+.theme-bubble-user {
+  align-self: flex-end; width: 60%; height: 10px; border-radius: 6px; opacity: 0.85;
+}
+.theme-bubble-ai {
+  align-self: flex-start; width: 70%; height: 10px; border-radius: 6px; opacity: 0.85;
+}
+.theme-name {
+  padding: 5px 8px; font-size: 11px; font-weight: bold; text-align: center;
+}
+.theme-desc { font-size: 10px; opacity: 0.65; display: block; }
+
+/* Accent preview strip */
+.accent-strip { height: 3px; width: 100%; }
+
+/* Theme group label */
+.theme-section-label {
+  font-size: 11px; color: #776655; text-align: center;
+  border-top: 1px solid #332211; padding-top: 10px; letter-spacing: 2px;
+}
+
+/* Action buttons */
+.action-row {
+  width: min(640px, 100%); display: flex; flex-direction: column; gap: 10px;
+  margin-top: 8px;
+}
+.btn-primary {
+  width: 100%; padding: 14px; border-radius: 12px;
+  border: none; background: #c07030; color: #fff;
+  font-size: 15px; font-weight: bold; cursor: pointer;
+  letter-spacing: 1px; transition: background 0.2s;
+}
+.btn-primary:hover { background: #d08040; }
+.btn-secondary {
+  width: 100%; padding: 10px; border-radius: 12px;
+  border: 1px solid #443322; background: #ece4d4;
+  color: #a08060; font-size: 13px; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: #c07030; color: #f0c080; }
+.btn-skip {
+  width: 100%; padding: 8px; border-radius: 12px;
+  border: 1px solid #2a2010; background: none;
+  color: #554433; font-size: 12px; cursor: pointer;
+  transition: color 0.2s;
+}
+.btn-skip:hover { color: #776655; }
+
+.status-msg {
+  font-size: 12px; color: #80c080; text-align: center;
+  min-height: 18px; padding: 4px 0;
+}
+.status-msg.err { color: #e07070; }
+
+/* Mode selector */
+.mode-selector {
+  width: 100%; display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 16px; border-radius: 10px;
+  border: 1px solid #c07030; background: #f0e8d8;
+}
+.mode-selector-label {
+  font-size: 11px; color: #a08060; font-weight: bold; letter-spacing: 1px;
+}
+.mode-toggle { display: flex; gap: 8px; }
+.mode-btn {
+  flex: 1; padding: 10px 8px; border-radius: 8px;
+  border: 1px solid #443322; background: #ece4d4;
+  color: #887766; font-size: 13px; cursor: pointer;
+  text-align: center; transition: all 0.2s;
+}
+.mode-btn.active { border-color: #c07030; background: #c07030; color: #fff; font-weight: bold; }
+
+/* TTS test button */
+.btn-tts-test {
+  padding: 7px 16px; border-radius: 8px;
+  border: 1px solid #443322; background: #ece4d4;
+  color: #a08060; font-size: 12px; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+}
+.btn-tts-test:hover { border-color: #c07030; color: #c07030; }
+.btn-tts-test:disabled { opacity: 0.5; cursor: default; }
+
+/* Gist restore panel */
+.gist-panel {
+  width: min(640px, 100%); background: #ece4d4;
+  border: 1px solid #443322; border-radius: 14px;
+  margin-bottom: 20px; overflow: hidden;
+}
+.gist-panel-header {
+  background: #ece4d4; padding: 10px 18px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.gist-panel-title { font-size: 13px; color: #c07030; font-weight: bold; }
+.gist-panel-toggle { font-size: 11px; color: #665544; }
+.gist-panel-body {
+  padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;
+}
+.gist-panel-body.hidden { display: none; }
+.gist-row { display: flex; gap: 8px; align-items: center; }
+.gist-row input { flex: 1; }
+.btn-gist {
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid #c07030; background: #1e100a;
+  color: #f0c080; font-size: 12px; cursor: pointer;
+  white-space: nowrap; transition: all 0.2s;
+}
+.btn-gist:hover { background: #2a1a0e; border-color: #d08040; }
+.btn-gist:disabled { opacity: 0.4; cursor: not-allowed; }
+.gist-status { font-size: 11px; color: #778899; min-height: 16px; }
+</style>
+</head>
+<body>
+
+<h1>セットアップウィザード</h1>
+<p class="subtitle">設定は localStorage に保存されます。後から変更可能です。</p>
+
+<!-- ===== Gist 復元パネル（別デバイスからの設定移行） ===== -->
+<div class="gist-panel">
+  <div class="gist-panel-header" onclick="toggleGistPanel()">
+    <span class="gist-panel-title">☁️ Gistから設定を復元（別デバイス用）</span>
+    <span class="gist-panel-toggle" id="gist-panel-toggle">▼ 開く</span>
+  </div>
+  <div class="gist-panel-body hidden" id="gist-panel-body">
+    <div class="field-note" style="font-size:11px; color:#a08060; line-height:1.6">
+      他のデバイスで保存したGistからAPIキー・テーマ・TTS設定を復元します。<br>
+      復元後、このウィザードの入力欄が自動的に更新されます。
+    </div>
+    <div class="field">
+      <div class="field-label">GitHub Token（Gists: read権限）</div>
+      <input type="password" id="wz-gist-token" placeholder="github_pat_..." autocomplete="off">
+    </div>
+    <div class="field">
+      <div class="field-label">Gist ID</div>
+      <div class="gist-row">
+        <input type="text" id="wz-gist-id" placeholder="例: abc123def456..." autocomplete="off">
+        <button class="btn-gist" id="wz-gist-btn" onclick="wizardGistRestore()">☁️ 復元</button>
+      </div>
+    </div>
+    <div class="gist-status" id="wz-gist-status"></div>
+  </div>
+</div>
+
+<!-- ===== Section 1: LLM ===== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <div class="section-title">LLM（AI）設定</div>
+  </div>
+  <div class="section-body">
+
+    <div class="field">
+      <div class="field-label field-required">AIプロバイダー</div>
+      <div class="provider-toggle">
+        <button class="provider-btn active" id="prov-gemini" onclick="selectProvider('gemini')">Gemini（Google）</button>
+        <button class="provider-btn" id="prov-openai" onclick="selectProvider('openai')">OpenAI 互換</button>
+      </div>
+    </div>
+
+    <!-- Gemini -->
+    <div class="cond show" id="gemini-fields">
+      <div class="field">
+        <div class="field-label field-required">Gemini API キー</div>
+        <input type="password" id="gemini-api-key" placeholder="AIzaSy..." autocomplete="off">
+        <div class="field-note">Google AI Studio から取得できます。localStorage に平文保存されます。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">モデル名</div>
+        <input type="text" id="gemini-model" placeholder="gemini-2.0-flash" value="gemini-2.0-flash">
+      </div>
+    </div>
+
+    <!-- OpenAI 互換 -->
+    <div class="cond" id="openai-fields">
+      <div class="field">
+        <div class="field-label field-required">ベース URL</div>
+        <input type="url" id="llm-base-url" placeholder="http://localhost:11434/v1">
+        <div class="field-note">Ollama の場合: http://localhost:11434/v1　OpenAI の場合: https://api.openai.com/v1</div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <div class="field-label">API キー（ローカルは不要）</div>
+          <input type="password" id="llm-api-key" placeholder="sk-..." autocomplete="off">
+        </div>
+        <div class="field">
+          <div class="field-label">モデル名</div>
+          <input type="text" id="llm-model" placeholder="gpt-4o / llama3">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== Section 2: TTS ===== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <div class="section-title">音声合成（TTS）設定</div>
+  </div>
+  <div class="section-body">
+
+    <div class="field">
+      <div class="field-label">TTSプロバイダー</div>
+      <div class="provider-toggle">
+        <button class="provider-btn active" id="tts-sbv2" onclick="selectTTS('sbv2')">Style-Bert-VITS2</button>
+        <button class="provider-btn" id="tts-voicevox" onclick="selectTTS('voicevox')">VOICEVOX</button>
+        <button class="provider-btn" id="tts-none" onclick="selectTTS('none')">TTS なし</button>
+      </div>
+    </div>
+
+    <div class="cond show" id="tts-fields">
+      <div class="row2">
+        <div class="field">
+          <div class="field-label">エンドポイント</div>
+          <input type="url" id="tts-endpoint" placeholder="http://127.0.0.1:5000" value="http://127.0.0.1:5000">
+        </div>
+        <div class="field" id="tts-model-wrap">
+          <div class="field-label">モデル名（SBV2）</div>
+          <input type="text" id="tts-model" placeholder="モデルフォルダ名">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field" id="tts-speaker-wrap">
+          <div class="field-label">スピーカー ID（VOICEVOX）</div>
+          <input type="number" id="tts-speaker-id" value="0" min="0" style="width:100px">
+        </div>
+        <div class="field">
+          <div class="field-label">音量</div>
+          <input type="number" id="tts-volume" value="1.0" min="0.1" max="3.0" step="0.1" style="width:100px">
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+        <button class="btn-tts-test" id="tts-test-btn" onclick="testTTS()">▶ テスト再生</button>
+        <span id="tts-test-status" style="font-size:11px; color:#a08060;"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== Section 3: キャラクター ===== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <div class="section-title">キャラクター設定</div>
+  </div>
+  <div class="section-body">
+
+    <div class="field">
+      <div class="field-label">アプリタイトル</div>
+      <input type="text" id="chat-title" placeholder="ひより Chat" value="ひより Chat">
+    </div>
+
+    <div class="field">
+      <div class="field-label">システムプロンプト（空欄＝デフォルト）</div>
+      <textarea id="system-prompt" placeholder="あなたは「ひより」という名前の...（空欄でデフォルト使用）" rows="5"></textarea>
+      <div class="field-note">チャット画面起動後でも動作するデフォルトプロンプトが内蔵されています。</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== Section 4: 外観 ===== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <div class="section-title">外観設定（カラーテーマ）</div>
+  </div>
+  <div class="section-body">
+    <div class="field-note" style="font-size:12px; color:#a08060;">テーマを選択してください（後でチャット画面から変更はできません）</div>
+    <div class="theme-section-label">— ダーク系 —</div>
+    <div class="theme-grid" id="theme-grid-dark"></div>
+    <div class="theme-section-label" style="margin-top:12px;">— ライト系 —</div>
+    <div class="theme-grid" id="theme-grid-light"></div>
+  </div>
+</div>
+
+<!-- ===== Action ===== -->
+<div class="action-row">
+  <div class="mode-selector">
+    <div class="mode-selector-label">起動モード</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-live2d" onclick="selectChatMode('live2d')">Live2D版</button>
+      <button class="mode-btn" id="mode-illust" onclick="selectChatMode('illust')">静止画版</button>
+    </div>
+  </div>
+  <div class="status-msg" id="status-msg"></div>
+  <button class="btn-primary" onclick="saveAndStart()">チャット画面を開く →</button>
+  <button class="btn-secondary" onclick="downloadEnv()">.env ファイルをダウンロード</button>
+  <button class="btn-skip" onclick="skipWizard()">設定をスキップしてチャット画面を開く</button>
+</div>
+
+<script>
+// ============================================================
+// 11 Color Themes  (5 dark + 6 light)
+//
+// Light theme ルール:
+//   bg-chat    = bg-main より約8〜10% L 低い（適度に区別できる範囲）
+//   accent     = テーマを代表する中明度の彩色（ボタン用）
+//   btn-on-bg  = ライト系: accent色（明色テキストと組み合わせ）
+//               ダーク系: 暗い背景色（明色テキストと組み合わせ）
+//   btn-on-text = ライト系: #ffffff  /  ダーク系: accent-light
+// ============================================================
+const THEMES = [
+  // ---- Dark themes ----
+  {
+    id: 'kohaku', name: '琥珀', desc: 'ダーク・アンバー（デフォルト）', dark: true,
+    vars: {
+      '--bg-main': '#1a1408', '--bg-chat': '#0a0800',
+      '--bg-bubble-ai': '#261800', '--bg-bubble-user': '#163044', '--bg-canvas': '#FFEDEE',
+      '--text-main': '#f0e8d8', '--text-ai': '#f0d890', '--text-user': '#90d0ff',
+      '--accent': '#c07030', '--accent-hover': '#d08040',
+      '--accent-light': '#f0c080', '--border': '#443322', '--border-light': '#332211',
+      '--btn-on-bg': '#3a2010', '--btn-on-text': '#f0c080'
+    }
+  },
+  {
+    id: 'sakura', name: '桜夜', desc: 'ダーク・ローズ', dark: true,
+    vars: {
+      '--bg-main': '#1a0f14', '--bg-chat': '#0a0508',
+      '--bg-bubble-ai': '#2a1020', '--bg-bubble-user': '#102040', '--bg-canvas': '#FFE4F0',
+      '--text-main': '#f0e0e8', '--text-ai': '#ffb8d0', '--text-user': '#90c8ff',
+      '--accent': '#c04070', '--accent-hover': '#d05080',
+      '--accent-light': '#ff90b8', '--border': '#442233', '--border-light': '#331122',
+      '--btn-on-bg': '#2a0818', '--btn-on-text': '#ff90b8'
+    }
+  },
+  {
+    id: 'shinkai', name: '深海', desc: 'ダーク・ブルー', dark: true,
+    vars: {
+      '--bg-main': '#080c18', '--bg-chat': '#040810',
+      '--bg-bubble-ai': '#101828', '--bg-bubble-user': '#0a2040', '--bg-canvas': '#E0ECFF',
+      '--text-main': '#d0e0f0', '--text-ai': '#90c8e8', '--text-user': '#c8e8ff',
+      '--accent': '#3070c0', '--accent-hover': '#4080d0',
+      '--accent-light': '#70b0f0', '--border': '#203050', '--border-light': '#182840',
+      '--btn-on-bg': '#0a1020', '--btn-on-text': '#70b0f0'
+    }
+  },
+  {
+    id: 'midori', name: '翠林', desc: 'ダーク・グリーン', dark: true,
+    vars: {
+      '--bg-main': '#0a1408', '--bg-chat': '#040a04',
+      '--bg-bubble-ai': '#0e2010', '--bg-bubble-user': '#1a3030', '--bg-canvas': '#E0F5E0',
+      '--text-main': '#d8ecd8', '--text-ai': '#a0d890', '--text-user': '#80d0c8',
+      '--accent': '#38a040', '--accent-hover': '#48b050',
+      '--accent-light': '#80d060', '--border': '#284428', '--border-light': '#1e3418',
+      '--btn-on-bg': '#0a1e0a', '--btn-on-text': '#80d060'
+    }
+  },
+  {
+    id: 'akatsuki', name: '暁闇', desc: 'ダーク・グレー', dark: true,
+    vars: {
+      '--bg-main': '#141210', '--bg-chat': '#0c0a08',
+      '--bg-bubble-ai': '#1e1810', '--bg-bubble-user': '#141e28', '--bg-canvas': '#F8F0E8',
+      '--text-main': '#ede8e0', '--text-ai': '#d8c8a8', '--text-user': '#90b8d0',
+      '--accent': '#a06830', '--accent-hover': '#b07840',
+      '--accent-light': '#e0a860', '--border': '#3a3028', '--border-light': '#2a2018',
+      '--btn-on-bg': '#1e1810', '--btn-on-text': '#e0a860'
+    }
+  },
+
+  {
+    // ダーク春霞: 琥珀（amber）より赤み・コーラル寄りのダークピーチ
+    id: 'harugasumi-dark', name: '春霞（夜）', desc: 'ダーク・コーラルピーチ', dark: true,
+    vars: {
+      '--bg-main': '#1a0e0a', '--bg-chat': '#0e0804',
+      '--bg-bubble-ai': '#2a1610', '--bg-bubble-user': '#102038', '--bg-canvas': '#FFE0D8',
+      '--text-main': '#f0e0d8', '--text-ai': '#ffb8a0', '--text-user': '#90c0ff',
+      '--accent': '#c06040', '--accent-hover': '#d07050',
+      '--accent-light': '#ff9870', '--border': '#442818', '--border-light': '#331808',
+      '--btn-on-bg': '#2a1008', '--btn-on-text': '#ff9870'
+    }
+  },
+
+  // ---- Light themes ----
+  // bg-chat は bg-main より約8〜10% L 低く設定
+  {
+    id: 'onpaku', name: '温白', desc: 'ライト・ウォームホワイト', dark: false,
+    vars: {
+      '--bg-main': '#f5f0e8', '--bg-chat': '#e0d4c4',
+      '--bg-bubble-ai': '#ece4d4', '--bg-bubble-user': '#c8dcf0', '--bg-canvas': '#f0ece4',
+      '--text-main': '#28201a', '--text-ai': '#382a1a', '--text-user': '#0e304c',
+      '--accent': '#a07830', '--accent-hover': '#b08840',
+      '--accent-light': '#6a4808', '--border': '#d4c8b0', '--border-light': '#e4d8c4',
+      '--btn-on-bg': '#a07830', '--btn-on-text': '#ffffff'
+    }
+  },
+  {
+    id: 'sakurasaki', name: '桜咲', desc: 'ライト・チェリーブロッサム', dark: false,
+    vars: {
+      '--bg-main': '#fef0f2', '--bg-chat': '#f4d0d8',
+      '--bg-bubble-ai': '#f8e0e6', '--bg-bubble-user': '#cce0f8', '--bg-canvas': '#fff4f6',
+      '--text-main': '#281018', '--text-ai': '#380818', '--text-user': '#0e2848',
+      '--accent': '#b83060', '--accent-hover': '#c84070',
+      '--accent-light': '#7a0830', '--border': '#f0c8d4', '--border-light': '#fad8e4',
+      '--btn-on-bg': '#b83060', '--btn-on-text': '#ffffff'
+    }
+  },
+  {
+    id: 'sorairo', name: '空色', desc: 'ライト・スカイブルー', dark: false,
+    vars: {
+      '--bg-main': '#f0f4fe', '--bg-chat': '#d4e0f8',
+      '--bg-bubble-ai': '#dce8fc', '--bg-bubble-user': '#cef0e0', '--bg-canvas': '#f4f8ff',
+      '--text-main': '#101828', '--text-ai': '#182030', '--text-user': '#103820',
+      '--accent': '#2858c0', '--accent-hover': '#3868d0',
+      '--accent-light': '#0a3080', '--border': '#c4d4f0', '--border-light': '#dce8fc',
+      '--btn-on-bg': '#2858c0', '--btn-on-text': '#ffffff'
+    }
+  },
+  {
+    id: 'moegi', name: '萌黄', desc: 'ライト・スプリンググリーン', dark: false,
+    vars: {
+      '--bg-main': '#f2f8ec', '--bg-chat': '#d8ecd0',
+      '--bg-bubble-ai': '#dceedc', '--bg-bubble-user': '#c8e4f8', '--bg-canvas': '#f4faf0',
+      '--text-main': '#182018', '--text-ai': '#203820', '--text-user': '#103848',
+      '--accent': '#309830', '--accent-hover': '#40a840',
+      '--accent-light': '#185818', '--border': '#c0d8bc', '--border-light': '#d4ecd0',
+      '--btn-on-bg': '#309830', '--btn-on-text': '#ffffff'
+    }
+  },
+  {
+    id: 'usuzumi', name: '薄墨', desc: 'ライト・シルバーグレー', dark: false,
+    vars: {
+      '--bg-main': '#f2f0ef', '--bg-chat': '#d8d4d0',
+      '--bg-bubble-ai': '#e4e0dc', '--bg-bubble-user': '#c8d8ee', '--bg-canvas': '#eeecec',
+      '--text-main': '#1c1a18', '--text-ai': '#2c2820', '--text-user': '#102038',
+      '--accent': '#5c6878', '--accent-hover': '#6c7888',
+      '--accent-light': '#2c3848', '--border': '#d0ccc8', '--border-light': '#dedad8',
+      '--btn-on-bg': '#5c6878', '--btn-on-text': '#ffffff'
+    }
+  },
+  {
+    // 春霞: bg-main より約8〜10% L 低い柔らかいピンク/サーモン
+    id: 'harugasumi', name: '春霞', desc: 'ライト・ソフトピーチ', dark: false,
+    vars: {
+      '--bg-main': '#fdf4f0', '--bg-chat': '#efd4c8',
+      '--bg-bubble-ai': '#fce8e0', '--bg-bubble-user': '#d4e8f8', '--bg-canvas': '#fff8f4',
+      '--text-main': '#2a1810', '--text-ai': '#381a10', '--text-user': '#0e2848',
+      '--accent': '#c06040', '--accent-hover': '#d07050',
+      '--accent-light': '#802818', '--border': '#f0d0c4', '--border-light': '#fce4d8',
+      '--btn-on-bg': '#c06040', '--btn-on-text': '#ffffff'
+    }
+  }
+];
+
+let selectedThemeId = 'kohaku';
+let selectedTTSProvider = 'sbv2';
+let selectedLLMProvider = 'gemini';
+
+// ============================================================
+// Build theme grid (dark / light in separate grids)
+// ============================================================
+function buildThemeGrid() {
+  const darkGrid  = document.getElementById('theme-grid-dark');
+  const lightGrid = document.getElementById('theme-grid-light');
+  THEMES.forEach(t => {
+    const v = t.vars;
+    const card = document.createElement('div');
+    card.className = 'theme-card' + (t.id === selectedThemeId ? ' selected' : '');
+    card.id = 'theme-' + t.id;
+    card.onclick = () => selectTheme(t.id);
+    card.innerHTML = `
+      <div class="theme-preview" style="background:${v['--bg-main']}">
+        <div class="theme-bubble-user" style="background:${v['--bg-bubble-user']}"></div>
+        <div class="theme-bubble-ai"   style="background:${v['--bg-bubble-ai']}"></div>
+      </div>
+      <div class="accent-strip" style="background:${v['--accent']}"></div>
+      <div class="theme-name" style="background:${v['--bg-main']};color:${v['--accent-light']}">
+        ${t.name}<br><span class="theme-desc" style="color:${v['--text-main']}">${t.desc}</span>
+      </div>
+    `;
+    (t.dark ? darkGrid : lightGrid).appendChild(card);
+  });
+}
+
+function selectTheme(id) {
+  selectedThemeId = id;
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('theme-' + id);
+  if (el) el.classList.add('selected');
+}
+
+// ============================================================
+// Provider toggles
+// ============================================================
+function selectProvider(p) {
+  selectedLLMProvider = p;
+  document.getElementById('prov-gemini').classList.toggle('active', p === 'gemini');
+  document.getElementById('prov-openai').classList.toggle('active', p === 'openai');
+  document.getElementById('gemini-fields').classList.toggle('show', p === 'gemini');
+  document.getElementById('openai-fields').classList.toggle('show', p === 'openai');
+}
+
+function selectTTS(p) {
+  selectedTTSProvider = p;
+  ['sbv2','voicevox','none'].forEach(id => {
+    document.getElementById('tts-' + id).classList.toggle('active', p === id);
+  });
+  const hasServer = (p === 'sbv2' || p === 'voicevox');
+  document.getElementById('tts-fields').classList.toggle('show', hasServer);
+  // Show/hide model vs speaker
+  if (hasServer) {
+    document.getElementById('tts-model-wrap').style.display = (p === 'sbv2') ? '' : 'none';
+    document.getElementById('tts-speaker-wrap').style.display = (p === 'voicevox') ? '' : 'none';
+    if (p === 'sbv2')  document.getElementById('tts-endpoint').placeholder = 'http://127.0.0.1:5000';
+    if (p === 'voicevox') document.getElementById('tts-endpoint').placeholder = 'http://127.0.0.1:50021';
+  }
+}
+
+// ============================================================
+// Load existing values from localStorage
+// ============================================================
+function loadExisting() {
+  const g = k => localStorage.getItem(k) || '';
+  const prov = g('hiyori_cfg_llm_provider') || 'gemini';
+  selectProvider(prov);
+
+  if (g('hiyori_cfg_gemini_api_key')) document.getElementById('gemini-api-key').value = g('hiyori_cfg_gemini_api_key');
+  if (g('hiyori_cfg_gemini_model'))   document.getElementById('gemini-model').value   = g('hiyori_cfg_gemini_model');
+  if (g('hiyori_cfg_llm_base_url'))   document.getElementById('llm-base-url').value   = g('hiyori_cfg_llm_base_url');
+  if (g('hiyori_cfg_llm_api_key'))    document.getElementById('llm-api-key').value    = g('hiyori_cfg_llm_api_key');
+  if (g('hiyori_cfg_llm_model'))      document.getElementById('llm-model').value      = g('hiyori_cfg_llm_model');
+
+  const ttsProv = g('hiyori_cfg_tts_provider') || 'sbv2';
+  selectTTS(ttsProv);
+  if (g('hiyori_cfg_tts_endpoint'))   document.getElementById('tts-endpoint').value   = g('hiyori_cfg_tts_endpoint');
+  if (g('hiyori_cfg_tts_model'))      document.getElementById('tts-model').value      = g('hiyori_cfg_tts_model');
+  if (g('hiyori_cfg_tts_speaker_id')) document.getElementById('tts-speaker-id').value = g('hiyori_cfg_tts_speaker_id');
+  if (g('hiyori_cfg_tts_volume'))     document.getElementById('tts-volume').value     = g('hiyori_cfg_tts_volume');
+
+  if (g('hiyori_cfg_chat_title'))     document.getElementById('chat-title').value     = g('hiyori_cfg_chat_title');
+  if (g('hiyori_cfg_system_prompt'))  document.getElementById('system-prompt').value  = g('hiyori_cfg_system_prompt');
+
+  // Theme
+  try {
+    const savedVars = JSON.parse(g('hiyori_theme_vars') || 'null');
+    if (savedVars) {
+      const match = THEMES.find(t => t.vars['--bg-main'] === savedVars['--bg-main']);
+      if (match) selectTheme(match.id);
+    }
+  } catch(e){}
+}
+
+// ============================================================
+// Save to localStorage
+// ============================================================
+function saveConfig() {
+  const s = (k, v) => { if (v !== null && v !== undefined && v !== '') localStorage.setItem(k, v); };
+  s('hiyori_cfg_llm_provider', selectedLLMProvider);
+
+  if (selectedLLMProvider === 'gemini') {
+    s('hiyori_cfg_gemini_api_key', document.getElementById('gemini-api-key').value.trim());
+    s('hiyori_cfg_gemini_model',   document.getElementById('gemini-model').value.trim() || 'gemini-2.0-flash');
+  } else {
+    s('hiyori_cfg_llm_base_url', document.getElementById('llm-base-url').value.trim());
+    s('hiyori_cfg_llm_api_key',  document.getElementById('llm-api-key').value.trim());
+    s('hiyori_cfg_llm_model',    document.getElementById('llm-model').value.trim());
+  }
+
+  s('hiyori_cfg_tts_provider', selectedTTSProvider);
+  if (selectedTTSProvider !== 'none') {
+    s('hiyori_cfg_tts_endpoint',   document.getElementById('tts-endpoint').value.trim());
+    s('hiyori_cfg_tts_model',      document.getElementById('tts-model').value.trim());
+    s('hiyori_cfg_tts_speaker_id', document.getElementById('tts-speaker-id').value);
+    s('hiyori_cfg_tts_volume',     document.getElementById('tts-volume').value);
+  }
+
+  const title = document.getElementById('chat-title').value.trim();
+  s('hiyori_cfg_chat_title', title || 'ひより Chat');
+
+  const sysprompt = document.getElementById('system-prompt').value.trim();
+  if (sysprompt) s('hiyori_cfg_system_prompt', sysprompt);
+  else localStorage.removeItem('hiyori_cfg_system_prompt');
+
+  // Theme vars
+  const theme = THEMES.find(t => t.id === selectedThemeId) || THEMES[0];
+  localStorage.setItem('hiyori_theme_vars', JSON.stringify(theme.vars));
+}
+
+function validate() {
+  if (selectedLLMProvider === 'gemini') {
+    const key = document.getElementById('gemini-api-key').value.trim();
+    if (!key) { showStatus('Gemini API キーを入力してください', true); return false; }
+  } else {
+    const url = document.getElementById('llm-base-url').value.trim();
+    if (!url) { showStatus('ベース URL を入力してください', true); return false; }
+  }
+  return true;
+}
+
+function showStatus(msg, isErr = false) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (isErr ? ' err' : '');
+  if (!isErr) setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+let selectedChatMode = 'live2d';
+function selectChatMode(mode) {
+  selectedChatMode = mode;
+  document.getElementById('mode-live2d').classList.toggle('active', mode === 'live2d');
+  document.getElementById('mode-illust').classList.toggle('active', mode === 'illust');
+}
+
+function chatModeFile() {
+  return selectedChatMode === 'illust' ? 'illust_chat.html' : 'live2d_chat.html';
+}
+
+function saveAndStart() {
+  if (!validate()) return;
+  saveConfig();
+  showStatus('設定を保存しました。チャット画面に移動します...');
+  setTimeout(() => { window.location.href = chatModeFile(); }, 800);
+}
+
+function skipWizard() {
+  sessionStorage.setItem('hiyori_skip_wizard', '1');
+  window.location.href = chatModeFile();
+}
+
+async function testTTS() {
+  const btn = document.getElementById('tts-test-btn');
+  const status = document.getElementById('tts-test-status');
+  const provider  = selectedTTSProvider;
+  const endpoint  = document.getElementById('tts-endpoint')?.value.trim() || 'http://127.0.0.1:5000';
+  const model     = document.getElementById('tts-model')?.value.trim() || '';
+  const speakerId = parseInt(document.getElementById('tts-speaker-id')?.value || '0');
+  const volume    = parseFloat(document.getElementById('tts-volume')?.value || '1.0');
+  if (provider === 'none') { status.textContent = 'TTS が無効です'; return; }
+  btn.disabled = true;
+  status.textContent = '再生中...';
+  try {
+    const testText = 'こんにちは、テスト再生です。';
+    let arrayBuf;
+    if (provider === 'voicevox') {
+      const qResp = await fetch(`${endpoint}/audio_query?${new URLSearchParams({ text: testText, speaker: speakerId })}`, { method: 'POST' });
+      if (!qResp.ok) throw new Error(`audio_query ${qResp.status}`);
+      const query = await qResp.json();
+      const sResp = await fetch(`${endpoint}/synthesis?${new URLSearchParams({ speaker: speakerId })}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) });
+      if (!sResp.ok) throw new Error(`synthesis ${sResp.status}`);
+      arrayBuf = await sResp.arrayBuffer();
+    } else {
+      const params = new URLSearchParams({ text: testText, model_name: model, style_weight: 1.0, split_interval: 0.3 });
+      const resp = await fetch(`${endpoint}/voice?${params}`);
+      if (!resp.ok) throw new Error(`TTS ${resp.status}`);
+      arrayBuf = await resp.arrayBuffer();
+    }
+    const ctx = new AudioContext();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuf);
+    const gain = ctx.createGain();
+    gain.gain.value = volume;
+    gain.connect(ctx.destination);
+    const src = ctx.createBufferSource();
+    src.buffer = audioBuffer;
+    src.connect(gain);
+    src.start();
+    src.onended = () => { status.textContent = '再生完了'; btn.disabled = false; };
+  } catch(e) {
+    status.textContent = 'エラー: ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// .env download
+// ============================================================
+function downloadEnv() {
+  const s = k => localStorage.getItem(k) || '';
+  const prov = selectedLLMProvider;
+  const ttsProv = selectedTTSProvider;
+
+  const lines = [
+    '# ひより Chat 設定ファイル',
+    '# wizard.html で生成',
+    '',
+    `LLM_PROVIDER=${prov}`,
+    '',
+    '# Gemini',
+    `GEMINI_API_KEY=${s('hiyori_cfg_gemini_api_key')}`,
+    `GEMINI_MODEL=${s('hiyori_cfg_gemini_model') || 'gemini-2.0-flash'}`,
+    '',
+    '# OpenAI 互換',
+    `LLM_BASE_URL=${s('hiyori_cfg_llm_base_url')}`,
+    `LLM_API_KEY=${s('hiyori_cfg_llm_api_key')}`,
+    `LLM_MODEL=${s('hiyori_cfg_llm_model')}`,
+    '',
+    '# TTS',
+    `TTS_PROVIDER=${ttsProv}`,
+    `TTS_ENDPOINT=${s('hiyori_cfg_tts_endpoint') || 'http://127.0.0.1:5000'}`,
+    `TTS_MODEL=${s('hiyori_cfg_tts_model')}`,
+    `TTS_SPEAKER_ID=${s('hiyori_cfg_tts_speaker_id') || '0'}`,
+    `TTS_VOLUME=${s('hiyori_cfg_tts_volume') || '1.0'}`,
+    '',
+    '# その他',
+    `CHAT_TITLE=${s('hiyori_cfg_chat_title') || 'ひより Chat'}`,
+    `IDLE_TIMEOUT=300`,
+    `MAIL_IDLE_HOURS=8`,
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '.env';
+  a.click();
+  showStatus('.env をダウンロードしました');
+}
+
+// ============================================================
+// Gist restore panel (wizard top)
+// ============================================================
+const WZ_GIST_TOKEN_KEY = 'hiyori_gist_token';
+const WZ_GIST_ID_KEY    = 'hiyori_gist_id';
+const WZ_GIST_FILENAME  = 'hiyori_session.json';
+
+const WZ_CFG_KEYS = [
+  'hiyori_cfg_llm_provider',
+  'hiyori_cfg_gemini_model',
+  'hiyori_cfg_llm_base_url',   'hiyori_cfg_llm_model',
+  'hiyori_cfg_tts_provider',   'hiyori_cfg_tts_endpoint',
+  'hiyori_cfg_tts_model',      'hiyori_cfg_tts_speaker_id', 'hiyori_cfg_tts_volume',
+  'hiyori_cfg_chat_title',     'hiyori_cfg_system_prompt',
+  'hiyori_theme_vars',
+];
+
+let gistPanelOpen = false;
+
+function toggleGistPanel() {
+  gistPanelOpen = !gistPanelOpen;
+  document.getElementById('gist-panel-body').classList.toggle('hidden', !gistPanelOpen);
+  document.getElementById('gist-panel-toggle').textContent = gistPanelOpen ? '▲ 閉じる' : '▼ 開く';
+}
+
+function _wzGistStatus(msg, color) {
+  const el = document.getElementById('wz-gist-status');
+  if (el) { el.textContent = msg; el.style.color = color || '#778899'; }
+}
+
+async function wizardGistRestore() {
+  const token  = document.getElementById('wz-gist-token').value.trim();
+  const gistId = document.getElementById('wz-gist-id').value.trim();
+  if (!token)  { _wzGistStatus('GitHub Tokenを入力してください', '#e07070'); return; }
+  if (!gistId) { _wzGistStatus('Gist IDを入力してください',      '#e07070'); return; }
+
+  const btn = document.getElementById('wz-gist-btn');
+  btn.disabled = true;
+  _wzGistStatus('取得中...', '#f0c080');
+
+  try {
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const result = await res.json();
+    const fileObj = result.files && result.files[WZ_GIST_FILENAME];
+    if (!fileObj) throw new Error(`Gistに ${WZ_GIST_FILENAME} が見つかりません`);
+
+    const rawContent = fileObj.truncated
+      ? await (await fetch(fileObj.raw_url)).text()
+      : fileObj.content;
+    const data = JSON.parse(rawContent);
+    if (!data || data.version !== 1) throw new Error('不正なセッションデータです');
+
+    // Apply wizard config keys from localStorage section
+    const ls = data.localStorage || {};
+    let applied = 0;
+    for (const key of WZ_CFG_KEYS) {
+      if (ls[key] !== undefined) {
+        localStorage.setItem(key, ls[key]);
+        applied++;
+      }
+    }
+
+    // Save token and gist ID for future use in chat screen
+    localStorage.setItem(WZ_GIST_TOKEN_KEY, token);
+    localStorage.setItem(WZ_GIST_ID_KEY,    gistId);
+
+    _wzGistStatus(`復元完了（${applied}件）。ウィザードを更新します...`, '#80c080');
+    setTimeout(() => { loadExisting(); _wzGistStatus('設定を反映しました', '#80c080'); }, 600);
+
+  } catch(e) {
+    _wzGistStatus('エラー: ' + e.message, '#e07070');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Pre-fill token/gist-id fields from localStorage if already saved
+(function initGistPanel() {
+  const tok = localStorage.getItem(WZ_GIST_TOKEN_KEY);
+  const gid = localStorage.getItem(WZ_GIST_ID_KEY);
+  if (tok) document.getElementById('wz-gist-token').value = tok;
+  if (gid) document.getElementById('wz-gist-id').value    = gid;
+})();
+
+// ============================================================
+// Init
+// ============================================================
+buildThemeGrid();
+loadExisting();
+</script>
+</body>
+</html>
