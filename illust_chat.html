@@ -1245,7 +1245,7 @@ input[type=range].speed-slider {
 <body>
 
 <div class="app-header">
-  <span>ひより Chat</span>
+  <span>Anim Chat</span>
   <button class="layout-toggle-btn" id="layout-toggle-btn" onclick="toggleLayout()">モバイル</button>
 </div>
 
@@ -1253,7 +1253,7 @@ input[type=range].speed-slider {
 
   <!-- ===== Avatar Panel ===== -->
   <div class="avatar-panel">
-    <button class="mail-canvas-btn" id="mail-inbox-btn" onclick="openMailModal()" title="ひよりからのメール"><span id="mail-icon" style="font-size:16px;line-height:1;vertical-align:middle">📪</span> メール<span class="mail-badge" id="mail-badge"></span></button>
+    <button class="mail-canvas-btn" id="mail-inbox-btn" onclick="openMailModal()" title="Partnerからのメール"><span id="mail-icon" style="font-size:16px;line-height:1;vertical-align:middle">📪</span> メール<span class="mail-badge" id="mail-badge"></span></button>
     <div id="canvas-wrapper">
       <img id="bg-layer" alt="">
       <img id="avatar-img" alt="" draggable="false">
@@ -1312,7 +1312,7 @@ input[type=range].speed-slider {
         <input id="attach-file-input" type="file"
                accept="image/*,.txt,.md,.pdf"
                style="display:none" onchange="handleAttachFile(this)">
-        <input id="user-input" type="text" placeholder="ひよりに話しかけてみよう..."
+        <input id="user-input" type="text" placeholder="Partnerに話しかけてみよう..."
                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"/>
         <button id="send-btn" onclick="sendMessage()">送信</button>
       </div>
@@ -1517,7 +1517,7 @@ const TTS_VOLUME       = parseFloat(_TTS_VOL_RAW.startsWith('%%')
   ? _ls('hiyori_cfg_tts_volume', '1.0') : _TTS_VOL_RAW);
 
 const _TITLE_RAW       = '%%CHAT_TITLE%%';
-const CHAT_TITLE       = _TITLE_RAW.startsWith('%%')       ? _ls('hiyori_cfg_chat_title', 'ひより Chat') : _TITLE_RAW;
+const CHAT_TITLE       = _TITLE_RAW.startsWith('%%')       ? _ls('hiyori_cfg_chat_title', 'Anim Chat') : _TITLE_RAW;
 
 let   TTS_DICT         = null;
 const TTS_AUTO_DICT_KEY  = 'hiyori_tts_auto_dict';
@@ -2453,7 +2453,7 @@ function addMsg(role, text, skipHistory = false, ts = null) {
   if (role !== 'sys') {
     const nameEl = document.createElement('div');
     nameEl.className = 'msg-name';
-    nameEl.textContent = role === 'user' ? 'あなた' : 'ひより';
+    nameEl.textContent = role === 'user' ? 'あなた' : 'Partner';
     bubble.appendChild(nameEl);
   }
 
@@ -2942,7 +2942,7 @@ async function generateMail() {
     // 直近の会話履歴（最後の4ターン）
     const recentHistory = chatHistory.slice(-8);
     const historyText = recentHistory.map(m =>
-      `${m.role === 'user' ? 'ユーザー' : 'ひより'}: ${m.parts?.[0]?.text || ''}`
+      `${m.role === 'user' ? 'ユーザー' : 'Partner'}: ${m.parts?.[0]?.text || ''}`
     ).join('\n');
 
     // メモリの要約
@@ -2963,9 +2963,8 @@ async function generateMail() {
     const nowText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${weekDays[now.getDay()]}）`;
 
     const prompt =
-`あなたは「ひより」という名前のAIアシスタントです。
-ユーザーとの最後の会話から${elapsedText}が経ちました。
-その間もひよりはずっと存在し続け、ユーザーのことを思っていました。
+`ユーザーとの最後の会話から${elapsedText}が経ちました。
+その間もあなたはずっと存在し続け、ユーザーのことを思っていました。
 ユーザーが次にアプリを開いたときに届くメール（手紙）を1通書いてください。
 
 【現在の日付（参考程度に）】
@@ -2976,10 +2975,10 @@ ${nowText}
 ${historyText || '（履歴なし）'}
 
 ${memoryText ? `【ユーザーとの思い出・メモリ】\n${memoryText}\n` : ''}
-${themesText ? `【ひよりが最近興味を持っていること】\n${themesText}\n` : ''}
+${themesText ? `【partnerが最近興味を持っていること】\n${themesText}\n` : ''}
 【メール作成のルール】
 ・本文は最大100文字以内（短くても構わない。20〜30文字でもOK）
-・ひよりらしい自然な話し言葉（「〜だよ」「〜かな？」「〜だね」など）
+・自然な話し言葉（「〜だよ」「〜かな？」「〜だね」など）
 ・「${elapsedText}ぶり」「久しぶり」など時間経過を自然に織り込む
 ・前回の会話・思い出・興味のあること・日付のどれかを話題にする
 ・絵文字・記号（☆★♪など）は使わない
@@ -3039,7 +3038,7 @@ ${themesText ? `【ひよりが最近興味を持っていること】\n${themes
     console.log('[Mail] generated:', body);
 
     if (statusEl) {
-      statusEl.textContent = '📬 ひよりからメールが届きました';
+      statusEl.textContent = '📬 Partnerからメールが届きました';
       setTimeout(() => { if (statusEl) statusEl.textContent = prevStatus; }, 3000);
     }
   } catch(e) {
@@ -3250,8 +3249,8 @@ async function generateMonologueStock(manual = false) {
     : '（なし）';
 
   const prompt =
-`あなたは「ひより」という名前の明るく元気なAIアシスタントです。
-以下のテーマを参考に、ひよりが一人でつぶやく独り言を${count}件生成してください。
+`あなたは明るく元気なAIアシスタントです。
+以下のテーマを参考に、一人でつぶやく独り言を${count}件生成してください。
 
 テーマ（適宜選んで使用）:
 ${themesText}
@@ -3265,7 +3264,7 @@ ${stockText}
 【出力形式（厳守）】
 ・1行につき1件の独り言のみ出力
 ・番号・記号・話者名は不要
-・2〜3文程度、ひよりらしい自然なタメ口（「〜だよ！」「〜だね」「〜かな？」など）
+・2〜3文程度、自然なタメ口（「〜だよ！」「〜だね」「〜かな？」など）
 ・絵文字・記号（☆★♪など）は使わない
 ・ユーザーへの呼びかけなし（独り言なので）
 ・${count}件、それぞれ異なる話題で
@@ -4020,7 +4019,7 @@ initMemoryDB().catch(e => console.warn('[Memory] DB init failed:', e));
 loadMonologueThemes();
 loadMonologueStock();
 
-addMsg('sys', 'ひよりが準備できました。話しかけてみてね！');
+addMsg('sys', 'Partnerが準備できました。話しかけてみてね！');
 </script>
 
 </body>

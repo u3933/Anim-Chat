@@ -1,4 +1,4 @@
-# ひより Chat — Live2D版 操作マニュアル
+# Anim Chat — Live2D版 操作マニュアル
 
 > ファイル: `live2d_chat.html`
 
@@ -23,8 +23,10 @@ svg_anim_test/
 ├── live2d_chat.html          # Live2D版チャットアプリ本体
 ├── wizard.html               # セットアップウィザード
 ├── start.bat                 # Windows 起動スクリプト（ダブルクリック可）
-├── start.ps1                 # Windows PowerShell 起動スクリプト
+├── start.command             # macOS 起動スクリプト（ダブルクリック可）
 ├── start.sh                  # macOS / Linux 起動スクリプト
+├── miniserve.exe             # Windows 用 HTTP サーバー（同梱）
+├── miniserve-mac             # macOS 用 HTTP サーバー（同梱）
 ├── manifest.json             # PWA マニフェスト
 ├── tts_dict.yaml             # TTS 読み替え辞書（固有名詞など）
 ├── assets/                   # Live2D モデルデータ
@@ -46,10 +48,10 @@ svg_anim_test/
 
 | 項目 | 要件 |
 |---|---|
-| Node.js | v18 以上（`npx serve` のため） |
 | ブラウザ | Chrome / Edge 最新版推奨（Safari は部分的に動作） |
 | LLM API | Google Gemini API キー **または** OpenAI 互換エンドポイント |
 | TTS（任意） | Style-Bert-VITS2 または VOICEVOX をローカルで起動済み |
+> Node.js のインストールは不要です。HTTP サーバー（miniserve）を同梱しています。
 
 ---
 
@@ -57,30 +59,47 @@ svg_anim_test/
 
 ### Windows
 
-1. **Node.js** をインストール（未インストールの場合）
-2. `start.bat` をダブルクリック
-   - 内部で `npx serve` によりローカルHTTPサーバー（ポート 3000）を起動
+1. `start.bat` をダブルクリック
+   - 同梱の `miniserve.exe` によりローカルHTTPサーバー（ポート 3000）を起動
    - ブラウザが `http://localhost:3000/wizard.html` を自動で開く
+2. ウィザードで「起動モード」を **静止画版** に切り替えて「チャット画面を開く →」
 
-または PowerShell から:
-```powershell
-.\start.ps1
-```
+> **Windows SmartScreen 警告が出た場合**: 「詳細情報」→「実行」をクリックして許可してください。
 
-### macOS / Linux
+### macOS
+
+1. `start.command` をダブルクリック
+   - 同梱の `miniserve-mac` によりローカルHTTPサーバー（ポート 3000）を起動
+   - ブラウザが `http://localhost:3000/wizard.html` を自動で開く
+2. ウィザードで「起動モード」を **静止画版** に切り替えて「チャット画面を開く →」
+
+> **「開発元を確認できない」警告が出た場合**: システム環境設定 → プライバシーとセキュリティ → 「このまま開く」をクリックしてください。
+
+### Linux
 
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-- `npx serve` が使えない場合は `python3 -m http.server 3000` にフォールバック
-
 ### 手動起動
 
 ```bash
-npx serve . -p 3000
-# ブラウザで http://localhost:3000/wizard.html を開く
+# Windows
+miniserve.exe --port 3000 .
+
+# macOS
+./miniserve-mac --port 3000 .
+
+# Linux
+./miniserve-mac --port 3000 .
+```
+
+ブラウザで `http://localhost:3000/wizard.html` を開く。
+
+ウィザードを経由せず直接開く場合（設定済みの場合）:
+```
+http://localhost:3000/illust_chat.html
 ```
 
 > **重要**: `file://` プロトコルでは Live2D モデルや IndexedDB が正しく動作しません。必ずローカルHTTPサーバー経由で開いてください。
@@ -274,4 +293,4 @@ BufferSource.start() + 口パク（PARAM_MOUTH_OPEN_Y 操作）
 
 ---
 
-*最終更新: 2026-04-18*
+*最終更新: 2026-04-20*
