@@ -1953,7 +1953,7 @@ function cleanForTTS(text) {
   if (unknowns.length > 0) lookupKanaBackground(unknowns); // fire-and-forget
   text = applyTTSAutoDict(text); // 自動かな辞書（手動辞書適用後）
   return text
-    .replace(/[^\w\s。、！？!?\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBFa-zA-Z0-9ー〜～・\u2026]/g, '')
+    .replace(/[^\w\s。、！？!?\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBFa-zA-Z0-9ー〜～・\u2026\u3005\u3003]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
